@@ -1,0 +1,11 @@
+# Ignore the large dataset
+/data/
+
+# Ignore Python virtual environment folders
+venv/
+*.venv/
+env/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
