@@ -1,6 +1,11 @@
-numpy
+fastapi
+uvicorn[standard]
+python-multipart
 scipy
-matplotlib
-scikit-learn
-jupyter
+numpy
 pandas
+scikit-learn
+joblib
+sqlalchemy
+alembic
+python-dotenv
