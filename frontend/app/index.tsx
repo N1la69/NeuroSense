@@ -1,67 +1,37 @@
-import { View, Text, Pressable, ActivityIndicator } from "react-native";
-import { useEffect, useState } from "react";
+import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { api } from "./services/api";
+import { useAuth } from "./context/AuthContext";
 
 export default function HomeScreen() {
+  const { subjectId } = useAuth();
   const router = useRouter();
-  const [data, setData] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api
-      .getManifest()
-      .then(setData)
-      .catch((e) => {
-        console.error(e);
-        setError(e.message ?? "Failed to load backend");
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return <ActivityIndicator style={{ marginTop: 40 }} />;
-  }
-
-  if (error) {
-    return (
-      <View style={{ padding: 16 }}>
-        <Text style={{ color: "red", marginBottom: 8 }}>Backend error:</Text>
-        <Text>{error}</Text>
-      </View>
-    );
-  }
-
-  if (!data || !data.subjects) {
-    return (
-      <View style={{ padding: 16 }}>
-        <Text>No subjects found.</Text>
-      </View>
-    );
-  }
 
   return (
-    <View style={{ padding: 16 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
-        Your Child
+    <View style={{ flex: 1, padding: 24, justifyContent: "center" }}>
+      <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 12 }}>
+        Welcome 👋
       </Text>
 
-      {data.subjects.map((s: any) => (
-        <Pressable
-          key={s.id}
-          onPress={() => router.push(`/subjects/${s.id}`)}
-          style={{
-            padding: 16,
-            borderRadius: 8,
-            backgroundColor: "#eef",
-            marginBottom: 12,
-          }}
-        >
-          <Text style={{ fontSize: 16 }}>{s.id}</Text>
-          <Text style={{ color: "#555" }}>Sessions: {s.sessions.length}</Text>
-        </Pressable>
-      ))}
+      <Text style={{ fontSize: 16, color: "#555", marginBottom: 24 }}>
+        Here is an overview of your child&apos;s attention training progress.
+      </Text>
+
+      <Pressable
+        onPress={() => router.push(`/subjects/${subjectId}`)}
+        style={{
+          padding: 20,
+          borderRadius: 12,
+          backgroundColor: "#eef2ff",
+        }}
+      >
+        <Text style={{ fontSize: 18, fontWeight: "600" }}>
+          View My Child&apos;s Progress
+        </Text>
+
+        <Text style={{ marginTop: 6, color: "#555" }}>
+          Sessions • Improvements • Insights
+        </Text>
+      </Pressable>
     </View>
   );
 }

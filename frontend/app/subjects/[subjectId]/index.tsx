@@ -2,14 +2,36 @@ import { View, Text, Pressable, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../services/api";
 import { useEffect, useState } from "react";
-import SessionTrend from "@/app/components/SessionTrend";
 
 type SessionSummary = {
   sessionId: string;
-  auc: number | null;
-  nTrials: number;
-  meanProb: number;
+  score: number; // auc or meanProb
 };
+
+function interpretSession(score: number) {
+  if (score >= 0.7) {
+    return {
+      label: "Strong Focus",
+      description: "Your child showed strong attention during this session.",
+      color: "#2e7d32",
+    };
+  }
+
+  if (score >= 0.6) {
+    return {
+      label: "Improving Focus",
+      description: "Your child is improving and responding well to training.",
+      color: "#ed6c02",
+    };
+  }
+
+  return {
+    label: "Needs More Practice",
+    description:
+      "This session was challenging. Continued practice will help improve focus.",
+    color: "#d32f2f",
+  };
+}
 
 export default function SubjectScreen() {
   const { subjectId } = useLocalSearchParams<{ subjectId: string }>();
@@ -18,20 +40,12 @@ export default function SubjectScreen() {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const trendData = sessions
-    .sort((a, b) => a.sessionId.localeCompare(b.sessionId))
-    .map((s) => ({
-      sessionId: s.sessionId,
-      value: s.auc ?? s.meanProb,
-    }));
-
   useEffect(() => {
     async function loadSessions() {
       setLoading(true);
 
       const manifest = await api.getManifest();
       const subject = manifest.subjects.find((s: any) => s.id === subjectId);
-
       if (!subject) return;
 
       const summaries: SessionSummary[] = [];
@@ -41,19 +55,13 @@ export default function SubjectScreen() {
           const sessionId = sess.session;
           const pred = await api.getPrediction(subjectId!, sessionId);
 
-          const meanProb =
+          const score =
+            pred.auc ??
             pred.probs.reduce((a: number, b: number) => a + b, 0) /
-            pred.probs.length;
+              pred.probs.length;
 
-          summaries.push({
-            sessionId: sessionId,
-            auc: pred.auc ?? null,
-            nTrials: pred.probs.length,
-            meanProb,
-          });
-        } catch (e) {
-          console.warn("Failed session", sess);
-        }
+          summaries.push({ sessionId, score });
+        } catch {}
       }
 
       setSessions(summaries);
@@ -63,37 +71,58 @@ export default function SubjectScreen() {
     loadSessions().catch(console.error);
   }, [subjectId]);
 
-  return (
-    <ScrollView contentContainerStyle={{ padding: 16 }}>
-      <Text style={{ fontSize: 22, fontWeight: "700" }}>
-        Subject {subjectId}
-      </Text>
+  const latest = sessions[sessions.length - 1];
 
-      {!loading && <SessionTrend data={trendData} />}
+  return (
+    <ScrollView contentContainerStyle={{ padding: 20 }}>
+      {/* Header */}
+      <Text style={{ fontSize: 22, fontWeight: "700" }}>
+        Your Child’s Training Progress
+      </Text>
 
       <Text style={{ marginTop: 6, color: "#555" }}>
-        Session Progress Overview
+        A simple overview of how your child is responding to attention training.
       </Text>
 
-      {loading && <Text style={{ marginTop: 20 }}>Loading sessions…</Text>}
+      {/* Overall Summary */}
+      {!loading &&
+        latest &&
+        (() => {
+          const info = interpretSession(latest.score);
+          return (
+            <View
+              style={{
+                marginTop: 20,
+                padding: 16,
+                borderRadius: 10,
+                backgroundColor: "#f5f7ff",
+              }}
+            >
+              <Text style={{ fontWeight: "600", fontSize: 16 }}>
+                Latest Session Summary
+              </Text>
+
+              <Text style={{ marginTop: 6, fontSize: 15, color: info.color }}>
+                {info.label}
+              </Text>
+
+              <Text style={{ marginTop: 4, color: "#555" }}>
+                {info.description}
+              </Text>
+            </View>
+          );
+        })()}
+
+      {/* Session History */}
+      <Text style={{ marginTop: 28, fontSize: 18, fontWeight: "600" }}>
+        Session History
+      </Text>
+
+      {loading && <Text style={{ marginTop: 12 }}>Loading sessions…</Text>}
 
       {!loading &&
-        sessions.map((s) => {
-          const quality =
-            s.auc === null
-              ? "Unknown"
-              : s.auc >= 0.7
-              ? "Good"
-              : s.auc >= 0.6
-              ? "Moderate"
-              : "Low";
-
-          const color =
-            quality === "Good"
-              ? "#2e7d32"
-              : quality === "Moderate"
-              ? "#ed6c02"
-              : "#d32f2f";
+        sessions.map((s, i) => {
+          const info = interpretSession(s.score);
 
           return (
             <Pressable
@@ -103,25 +132,21 @@ export default function SubjectScreen() {
               }
               style={{
                 marginTop: 14,
-                padding: 14,
-                borderRadius: 8,
+                padding: 16,
+                borderRadius: 10,
                 backgroundColor: "#f6f8ff",
               }}
             >
-              <Text style={{ fontWeight: "600" }}>Session {s.sessionId}</Text>
+              <Text style={{ fontWeight: "600" }}>Session {i + 1}</Text>
 
-              <Text style={{ marginTop: 4 }}>Trials: {s.nTrials}</Text>
-
-              {s.auc !== null && (
-                <Text style={{ marginTop: 2 }}>AUC: {s.auc.toFixed(3)}</Text>
-              )}
-
-              <Text style={{ marginTop: 2 }}>
-                Mean Response: {s.meanProb.toFixed(3)}
+              <Text
+                style={{ marginTop: 6, color: info.color, fontWeight: "600" }}
+              >
+                {info.label}
               </Text>
 
-              <Text style={{ marginTop: 6, color, fontWeight: "600" }}>
-                Quality: {quality}
+              <Text style={{ marginTop: 4, color: "#555" }}>
+                {info.description}
               </Text>
 
               <Text
@@ -131,7 +156,7 @@ export default function SubjectScreen() {
                   fontWeight: "600",
                 }}
               >
-                View Details →
+                View Session Details →
               </Text>
             </Pressable>
           );
