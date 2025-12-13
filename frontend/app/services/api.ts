@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 
 const LOCAL_LAN_IP = "192.168.31.17";
 
-const BASE_URL =
+export const BASE_URL =
   Platform.OS === "android"
     ? `http://${LOCAL_LAN_IP}:8000`
     : "http://localhost:8000";

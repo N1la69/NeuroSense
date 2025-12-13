@@ -2,7 +2,8 @@ import { View, Text, ScrollView } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import Slider from "@react-native-community/slider";
-import { api } from "@/app/services/api";
+import { api, BASE_URL } from "@/app/services/api";
+import { aggregateP300 } from "@/app/utils/p300";
 
 export default function PredictionScreen() {
   const { subjectId, sessionId } = useLocalSearchParams<{
@@ -13,24 +14,28 @@ export default function PredictionScreen() {
   const [probs, setProbs] = useState<number[]>([]);
   const [auc, setAuc] = useState<number | null>(null);
   const [threshold, setThreshold] = useState(0.5);
+  const [blockResults, setBlockResults] = useState<any[]>([]);
 
   useEffect(() => {
-    api
-      .getPrediction(subjectId!, sessionId!)
-      .then((res) => {
-        setProbs(res.probs);
-        setAuc(res.auc ?? null);
+    async function load() {
+      const pred = await api.getPrediction(subjectId!, sessionId!);
+      setProbs(pred.probs);
+      setAuc(pred.auc ?? null);
 
-        // sensible initial threshold = mean probability
-        if (res.probs?.length) {
-          const mean =
-            res.probs.reduce((a: number, b: number) => a + b, 0) /
-            res.probs.length;
-          setThreshold(Number(mean.toFixed(2)));
-        }
-      })
-      .catch(console.error);
-  }, []);
+      const metaRes = await fetch(
+        `${BASE_URL}/data/${subjectId}/${sessionId}/test`
+      );
+      const meta = await metaRes.json();
+
+      const blocks = aggregateP300(
+        pred.probs,
+        meta.events,
+        meta.runs_per_block
+      );
+      setBlockResults(blocks);
+    }
+    load().catch(console.error);
+  }, [subjectId, sessionId]);
 
   // simple stats
   const stats = useMemo(() => {
@@ -142,6 +147,38 @@ export default function PredictionScreen() {
             </Text>
           </View>
         ))}
+      </View>
+
+      <View style={{ marginTop: 28 }}>
+        <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>
+          Block-level Decisions
+        </Text>
+
+        {blockResults.slice(0, 10).map((b) => (
+          <View
+            key={b.block}
+            style={{
+              padding: 10,
+              borderRadius: 6,
+              backgroundColor: "#f4f6ff",
+              marginBottom: 8,
+            }}
+          >
+            <Text>Block {b.block}</Text>
+            <Text style={{ fontWeight: "600", marginTop: 4 }}>
+              Predicted Object: {b.predictedObject}
+            </Text>
+            <Text style={{ marginTop: 2, color: "#555" }}>
+              Confidence: {Math.max(...b.averages).toFixed(3)}
+            </Text>
+          </View>
+        ))}
+
+        {blockResults.length > 10 && (
+          <Text style={{ color: "#666", marginTop: 6 }}>
+            Showing first 10 of {blockResults.length} blocks
+          </Text>
+        )}
       </View>
     </ScrollView>
   );
