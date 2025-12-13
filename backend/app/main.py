@@ -1,0 +1,174 @@
+import json
+from pathlib import Path
+from typing import Optional
+import numpy as np
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Query
+from sklearn.metrics import roc_auc_score
+from app.models_serving import get_subject_model, get_generalized_model, predict_with_model
+
+ROOT = Path(__file__).resolve().parents[2]  # repo root
+STATIC_DIR = ROOT / "backend" / "static_data"
+MANIFEST_PATH = STATIC_DIR / "manifest.json"
+
+app = FastAPI(title="NeuroSense Backend (dev)")
+
+# Allow CORS from any origin for dev (you can lock this down later)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
+
+
+def load_manifest():
+    if not MANIFEST_PATH.exists():
+        raise FileNotFoundError("Manifest not found. Run preprocess_all.py first.")
+    return json.loads(MANIFEST_PATH.read_text())
+
+
+@app.get("/manifest")
+def get_manifest():
+    try:
+        return load_manifest()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/subjects")
+def list_subjects():
+    manifest = load_manifest()
+    subjects = [s["id"] for s in manifest.get("subjects", [])]
+    return {"subjects": subjects}
+
+
+@app.get("/subjects/{subject_id}/sessions")
+def list_sessions(subject_id: str):
+    manifest = load_manifest()
+    for s in manifest.get("subjects", []):
+        if s["id"] == subject_id:
+            sessions = [sess["session"] if "session" in sess else sess.get("session", sess.get("session")) for sess in s.get("sessions", [])]
+            # But manifest structure has sessions with session entries as the dict returned earlier.
+            return {"subject": subject_id, "sessions": s.get("sessions", [])}
+    raise HTTPException(status_code=404, detail=f"Subject {subject_id} not found")
+
+
+def load_npz_as_json(npz_path: Path):
+    if not npz_path.exists():
+        raise HTTPException(status_code=404, detail=f"{npz_path.name} not found")
+    # load compressed npz
+    with np.load(npz_path, allow_pickle=True) as d:
+        out = {}
+        for k, v in d.items():
+            # Attempt to convert arrays to lists; keep small metadata as-is
+            if isinstance(v, np.ndarray):
+                # convert to Python lists but keep shapes small
+                out[k] = v.tolist()
+            else:
+                # other types (int, str) -> convert
+                try:
+                    out[k] = json.loads(v) if isinstance(v, (str, np.str_)) else v
+                except Exception:
+                    out[k] = v.item() if hasattr(v, "item") else str(v)
+    return out
+
+
+@app.get("/data/{subject_id}/{session_id}/train")
+def get_train_features(subject_id: str, session_id: str):
+    rel_path = STATIC_DIR / subject_id / session_id / "train_features.npz"
+    if not rel_path.exists():
+        raise HTTPException(status_code=404, detail="train_features.npz not found for this session")
+    payload = load_npz_as_json(rel_path)
+    return JSONResponse(payload)
+
+
+@app.get("/data/{subject_id}/{session_id}/test")
+def get_test_features(subject_id: str, session_id: str):
+    rel_path = STATIC_DIR / subject_id / session_id / "test_features.npz"
+    if not rel_path.exists():
+        raise HTTPException(status_code=404, detail="test_features.npz not found for this session")
+    payload = load_npz_as_json(rel_path)
+    return JSONResponse(payload)
+
+
+@app.get("/raw/static/{path:path}")
+def serve_static(path: str):
+    # if you want to serve the raw .npz or manifest file directly
+    file_path = STATIC_DIR / path
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="file not found")
+    return FileResponse(file_path)
+
+# --- Model listing ---
+@app.get("/models/list")
+def list_models():
+    out = {"subject_models": [], "generalized_model": False}
+    # look for model files
+    subj_dir = Path(ROOT) / "models" / "subject_models"
+    if subj_dir.exists():
+        out["subject_models"] = sorted([p.name for p in subj_dir.glob("SBJ*_model.pkl")])
+    gen = Path(ROOT) / "models" / "generalized" / "generalized_model.pkl"
+    out["generalized_model"] = gen.exists()
+    return out
+
+# --- Predict for a session using saved features ---
+@app.get("/predict/session/{subject_id}/{session_id}")
+def predict_session(subject_id: str, session_id: str, prefer_subject_model: Optional[bool] = Query(True)):
+    """
+    Predict on precomputed features for a session.
+    - subject_id: like 'SBJ01'
+    - session_id: like 'S01'
+    - prefer_subject_model: if true, try loading subject-specific model; otherwise use generalized
+    """
+    # find feature file
+    train_path = STATIC_DIR / subject_id / session_id / "train_features.npz"
+    if not train_path.exists():
+        raise HTTPException(status_code=404, detail="train_features.npz not found for this session")
+
+    # load npz
+    import numpy as np
+    with np.load(train_path, allow_pickle=True) as d:
+        X = d.get("X")
+        targets = d.get("targets") if "targets" in d else None
+
+    # load model
+    # parse subject number
+    try:
+        subj_num = int(subject_id.replace("SBJ", ""))
+    except Exception:
+        subj_num = None
+
+    model_bundle = None
+    if prefer_subject_model and subj_num is not None:
+        try:
+            model_bundle = get_subject_model(subj_num)
+        except FileNotFoundError:
+            model_bundle = None
+
+    if model_bundle is None:
+        # fallback to generalized
+        try:
+            model_bundle = get_generalized_model()
+        except FileNotFoundError:
+            model_bundle = None
+
+    if model_bundle is None:
+        raise HTTPException(status_code=404, detail="No model found (checked subject-specific and generalized)")
+
+    # predict
+    probs = predict_with_model(model_bundle, X)
+    probs_list = probs.tolist()
+    resp = {"n_trials": int(len(probs_list)), "probs": probs_list}
+
+    # compute AUC if targets available
+    if targets is not None and len(targets) == len(probs_list):
+        try:
+            auc = float(roc_auc_score(targets.astype(int), probs))
+            resp["auc"] = auc
+        except Exception as e:
+            resp["auc_error"] = str(e)
+
+    return JSONResponse(resp)
