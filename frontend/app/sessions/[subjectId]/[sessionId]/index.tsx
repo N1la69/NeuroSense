@@ -1,7 +1,7 @@
 import { View, Text, ActivityIndicator, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { api } from "../../services/api";
+import { api } from "../../../services/api";
 
 export default function SessionScreen() {
   const { subjectId, sessionId } = useLocalSearchParams<{
