@@ -2,6 +2,7 @@ import { View, Text, Pressable, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../services/api";
 import { useEffect, useState } from "react";
+import SessionTrend from "@/app/components/SessionTrend";
 
 type SessionSummary = {
   sessionId: string;
@@ -16,6 +17,13 @@ export default function SubjectScreen() {
 
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const trendData = sessions
+    .sort((a, b) => a.sessionId.localeCompare(b.sessionId))
+    .map((s) => ({
+      sessionId: s.sessionId,
+      value: s.auc ?? s.meanProb,
+    }));
 
   useEffect(() => {
     async function loadSessions() {
@@ -60,6 +68,8 @@ export default function SubjectScreen() {
       <Text style={{ fontSize: 22, fontWeight: "700" }}>
         Subject {subjectId}
       </Text>
+
+      {!loading && <SessionTrend data={trendData} />}
 
       <Text style={{ marginTop: 6, color: "#555" }}>
         Session Progress Overview
