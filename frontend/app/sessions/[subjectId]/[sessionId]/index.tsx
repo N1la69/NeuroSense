@@ -4,30 +4,31 @@ import { useEffect, useMemo, useState } from "react";
 import { api, BASE_URL } from "@/app/services/api";
 import { aggregateP300 } from "@/app/utils/p300";
 import ObjectConfidenceBars from "@/app/components/ObjectConfidenceBars";
+import AppShell from "@/app/components/AppShell";
 
-function interpretSessionScore(score: number) {
-  if (score >= 0.7) {
+function interpretSessionScore(scorePct: number) {
+  if (scorePct >= 70) {
     return {
-      title: "Great Session 👍",
+      title: "Strong Attention Response",
       summary:
-        "Your child showed strong attention and responded very well during this session.",
-      color: "#2e7d32",
+        "Your child showed strong and consistent attention during this session.",
+      color: "#4f7cff",
     };
   }
 
-  if (score >= 0.6) {
+  if (scorePct >= 55) {
     return {
-      title: "Good Progress 🙂",
+      title: "Developing Attention",
       summary:
-        "Your child is learning to focus better. This session showed encouraging improvement.",
+        "Your child showed improving focus. This is a positive step in therapy.",
       color: "#ed6c02",
     };
   }
 
   return {
-    title: "Practice Needed 💙",
+    title: "Needs Support",
     summary:
-      "This session was challenging, which is normal. Continued sessions will help build attention.",
+      "This session was more challenging. This is normal and part of learning.",
     color: "#d32f2f",
   };
 }
@@ -63,20 +64,20 @@ export default function SessionScreen() {
     load().catch(console.error);
   }, [subjectId, sessionId]);
 
-  const score = useMemo(() => {
+  const scorePct = useMemo(() => {
     if (!probs.length) return null;
-    return probs.reduce((a, b) => a + b, 0) / probs.length;
+    return Math.round((probs.reduce((a, b) => a + b, 0) / probs.length) * 100);
   }, [probs]);
 
-  if (!score) {
+  if (scorePct === null) {
     return (
       <View style={{ padding: 20 }}>
-        <Text>Loading session details…</Text>
+        <Text>Loading session report…</Text>
       </View>
     );
   }
 
-  const interpretation = interpretSessionScore(score);
+  const interpretation = interpretSessionScore(scorePct);
 
   // Aggregate object preference
   const objectSummary = useMemo(() => {
@@ -88,84 +89,168 @@ export default function SessionScreen() {
     });
 
     const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-
     return top ? Number(top[0]) : null;
   }, [blockResults]);
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 20 }}>
-      {/* Header */}
-      <Text style={{ fontSize: 22, fontWeight: "700" }}>
-        Today’s Training Session
-      </Text>
+    <AppShell>
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
+        {/* Header */}
+        <Text style={{ fontSize: 20, fontWeight: "700" }}>
+          Therapy Session Report
+        </Text>
+        <Text style={{ marginTop: 4, color: "#666" }}>
+          Session {sessionId?.replace("S", "")}
+        </Text>
 
-      {/* Overall Result */}
-      <View
-        style={{
-          marginTop: 16,
-          padding: 16,
-          borderRadius: 10,
-          backgroundColor: "#f5f7ff",
-        }}
-      >
-        <Text
+        {/* BIG RESULT CARD */}
+        <View
           style={{
-            fontSize: 18,
-            fontWeight: "600",
-            color: interpretation.color,
+            marginTop: 20,
+            padding: 20,
+            borderRadius: 14,
+            backgroundColor: "#f6f8ff",
           }}
         >
-          {interpretation.title}
-        </Text>
-
-        <Text style={{ marginTop: 6, color: "#555" }}>
-          {interpretation.summary}
-        </Text>
-      </View>
-
-      {/* What Worked Best */}
-      {objectSummary !== null && (
-        <View style={{ marginTop: 24 }}>
-          <Text style={{ fontSize: 18, fontWeight: "600" }}>
-            What Worked Best
+          <Text style={{ fontSize: 14, color: "#666" }}>
+            Attention Response Level
+          </Text>
+          <Text style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+            Based on how consistently your child responded during activities
           </Text>
 
-          <Text style={{ marginTop: 6, color: "#555" }}>
-            Your child responded most consistently to visual option #
-            {objectSummary}.
+          <Text
+            style={{
+              fontSize: 42,
+              fontWeight: "800",
+              marginTop: 6,
+              color: interpretation.color,
+            }}
+          >
+            {scorePct}%
+          </Text>
+
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: "600",
+              color: interpretation.color,
+              marginTop: 4,
+            }}
+          >
+            {interpretation.title}
+          </Text>
+
+          <Text style={{ marginTop: 8, color: "#444" }}>
+            {interpretation.summary}
+          </Text>
+
+          <Text
+            style={{
+              marginTop: 10,
+              fontSize: 12,
+              color: "#666",
+              lineHeight: 16,
+            }}
+          >
+            This score reflects your child&apos;s responses during this specific
+            session. Overall progress is best seen across multiple sessions.
           </Text>
         </View>
-      )}
 
-      {/* Visual Explanation */}
-      {blockResults.length > 0 && (
+        {/* CONSISTENCY BAR */}
         <View style={{ marginTop: 24 }}>
-          <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 8 }}>
-            Attention Across Activities
+          <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>
+            Response Consistency
           </Text>
 
-          {blockResults.slice(0, 5).map((b) => (
+          <View
+            style={{
+              height: 12,
+              borderRadius: 6,
+              backgroundColor: "#e0e7ff",
+              overflow: "hidden",
+            }}
+          >
             <View
-              key={b.block}
               style={{
-                padding: 12,
-                borderRadius: 8,
-                backgroundColor: "#f4f6ff",
-                marginBottom: 12,
+                width: `${scorePct}%`,
+                height: "100%",
+                backgroundColor: interpretation.color,
               }}
-            >
-              <Text style={{ fontWeight: "600", marginBottom: 6 }}>
-                Activity Round {b.block}
-              </Text>
+            />
+          </View>
 
-              <ObjectConfidenceBars
-                averages={b.averages}
-                predicted={b.predictedObject}
-              />
-            </View>
-          ))}
+          <Text style={{ marginTop: 6, fontSize: 12, color: "#555" }}>
+            Higher consistency means your child responded more reliably during
+            activities
+          </Text>
+
+          <Text
+            style={{
+              marginTop: 10,
+              fontSize: 12,
+              color: "#777",
+              lineHeight: 16,
+            }}
+          >
+            It’s normal for attention levels to vary from session to session.
+            Progress is measured over time, not by a single day.
+          </Text>
         </View>
-      )}
-    </ScrollView>
+
+        {/* WHAT WORKED BEST */}
+        {objectSummary !== null && (
+          <View style={{ marginTop: 28 }}>
+            <Text style={{ fontSize: 16, fontWeight: "600" }}>
+              What Worked Best
+            </Text>
+
+            <Text style={{ marginTop: 6, color: "#555" }}>
+              Your child responded most consistently to visual option #
+              {objectSummary}.
+            </Text>
+          </View>
+        )}
+
+        {/* SIMPLIFIED ACTIVITY VISUALS */}
+        {blockResults.length > 0 && (
+          <View style={{ marginTop: 28 }}>
+            <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>
+              Activity Summary
+            </Text>
+            <Text style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>
+              Below is a simple breakdown of how your child responded during
+              different parts of the session.
+            </Text>
+
+            {blockResults.slice(0, 3).map((b) => (
+              <View
+                key={b.block}
+                style={{
+                  padding: 12,
+                  borderRadius: 10,
+                  backgroundColor: "#f4f6ff",
+                  marginBottom: 12,
+                }}
+              >
+                <Text style={{ fontWeight: "600", marginBottom: 6 }}>
+                  Activity {b.block}
+                </Text>
+
+                <ObjectConfidenceBars
+                  averages={b.averages}
+                  predicted={b.predictedObject}
+                />
+              </View>
+            ))}
+
+            <Text style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+              Showing key activities only
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </AppShell>
   );
 }
