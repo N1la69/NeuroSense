@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
 
-export default function SubjectsLayout() {
+export default function SubjectLayout() {
   return <Stack />;
 }

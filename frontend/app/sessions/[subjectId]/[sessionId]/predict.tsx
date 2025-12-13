@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Slider from "@react-native-community/slider";
 import { api, BASE_URL } from "@/app/services/api";
 import { aggregateP300 } from "@/app/utils/p300";
+import ObjectConfidenceBars from "@/app/components/ObjectConfidenceBars";
 
 export default function PredictionScreen() {
   const { subjectId, sessionId } = useLocalSearchParams<{
@@ -154,31 +155,26 @@ export default function PredictionScreen() {
           Block-level Decisions
         </Text>
 
-        {blockResults.slice(0, 10).map((b) => (
+        {blockResults.slice(0, 5).map((b) => (
           <View
             key={b.block}
             style={{
-              padding: 10,
-              borderRadius: 6,
+              padding: 12,
+              borderRadius: 8,
               backgroundColor: "#f4f6ff",
-              marginBottom: 8,
+              marginBottom: 12,
             }}
           >
-            <Text>Block {b.block}</Text>
-            <Text style={{ fontWeight: "600", marginTop: 4 }}>
-              Predicted Object: {b.predictedObject}
+            <Text style={{ fontWeight: "600" }}>
+              Block {b.block} · Selected Object #{b.predictedObject}
             </Text>
-            <Text style={{ marginTop: 2, color: "#555" }}>
-              Confidence: {Math.max(...b.averages).toFixed(3)}
-            </Text>
+
+            <ObjectConfidenceBars
+              averages={b.averages}
+              predicted={b.predictedObject}
+            />
           </View>
         ))}
-
-        {blockResults.length > 10 && (
-          <Text style={{ color: "#666", marginTop: 6 }}>
-            Showing first 10 of {blockResults.length} blocks
-          </Text>
-        )}
       </View>
     </ScrollView>
   );
