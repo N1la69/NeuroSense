@@ -1,3 +1,5 @@
+// frontend/app/index.tsx
+
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
@@ -7,7 +9,7 @@ import ProgressTrend from "./components/ProgressTrend";
 import AppShell from "./components/AppShell";
 
 export default function HomeScreen() {
-  const { subjectId } = useAuth();
+  const { subjectId, modelMode, setModelMode } = useAuth();
   const router = useRouter();
 
   const [scores, setScores] = useState<number[]>([]);
@@ -48,7 +50,12 @@ export default function HomeScreen() {
       const subject = manifest.subjects.find((s: any) => s.id === subjectId);
       if (!subject) return;
 
-      const preferSubjectModel = subject.sessions.length >= 3;
+      const preferSubjectModel =
+        modelMode === "loso"
+          ? false
+          : modelMode === "subject"
+          ? true
+          : subject.sessions.length >= 3;
 
       const s: number[] = [];
       const ids: string[] = [];
@@ -72,7 +79,7 @@ export default function HomeScreen() {
     }
 
     load().catch(console.error);
-  }, []);
+  }, [subjectId, modelMode]);
 
   if (!scores.length) {
     return (
@@ -89,8 +96,51 @@ export default function HomeScreen() {
     <AppShell>
       <ScrollView contentContainerStyle={{ padding: 20 }}>
         <Text style={{ fontSize: 22, fontWeight: "700" }}>
-          Your Child’s Therapy Progress
+          Your Child&apos;s Therapy Progress
         </Text>
+
+        {/* DEV ONLY: Model selection override */}
+        <View
+          style={{
+            marginTop: 12,
+            marginBottom: 12,
+            padding: 12,
+            borderRadius: 10,
+            backgroundColor: "#fff3cd",
+            borderWidth: 1,
+            borderColor: "#ffe69c",
+          }}
+        >
+          <Text style={{ fontSize: 12, fontWeight: "700", color: "#664d03" }}>
+            Dev Mode — Model Override
+          </Text>
+
+          <View style={{ flexDirection: "row", marginTop: 8 }}>
+            {["auto", "loso", "subject"].map((mode) => (
+              <Pressable
+                key={mode}
+                onPress={() => setModelMode(mode as any)}
+                style={{
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  borderRadius: 6,
+                  marginRight: 8,
+                  backgroundColor: modelMode === mode ? "#4f7cff" : "#e0e7ff",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color: modelMode === mode ? "#fff" : "#1e3a8a",
+                  }}
+                >
+                  {mode.toUpperCase()}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
 
         {/* Insight Card */}
         <View

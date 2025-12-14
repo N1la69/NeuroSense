@@ -1,7 +1,11 @@
+// frontend/app/subjects/[subjectId]/index.tsx
+
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../services/api";
 import { useEffect, useState } from "react";
+
+import { useAuth } from "@/app/context/AuthContext";
 
 type SessionSummary = {
   sessionId: string;
@@ -34,6 +38,8 @@ function interpretSession(score: number) {
 }
 
 export default function SubjectScreen() {
+  const { modelMode } = useAuth();
+
   const { subjectId } = useLocalSearchParams<{ subjectId: string }>();
   const router = useRouter();
 
@@ -48,7 +54,12 @@ export default function SubjectScreen() {
       const subject = manifest.subjects.find((s: any) => s.id === subjectId);
       if (!subject) return;
 
-      const preferSubjectModel = subject.sessions.length >= 3;
+      const preferSubjectModel =
+        modelMode === "loso"
+          ? false
+          : modelMode === "subject"
+          ? true
+          : subject.sessions.length >= 3;
 
       const summaries: SessionSummary[] = [];
 
@@ -75,7 +86,7 @@ export default function SubjectScreen() {
     }
 
     loadSessions().catch(console.error);
-  }, [subjectId]);
+  }, [subjectId, modelMode]);
 
   const latest = sessions[sessions.length - 1];
 

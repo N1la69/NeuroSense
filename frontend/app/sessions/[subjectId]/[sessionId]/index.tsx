@@ -1,3 +1,5 @@
+//frontend/app/sessions/[subjectId]/[sessionId]/index.tsx
+
 import { View, Text, ScrollView } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -5,6 +7,8 @@ import { api, BASE_URL } from "@/app/services/api";
 import { aggregateP300 } from "@/app/utils/p300";
 import ObjectConfidenceBars from "@/app/components/ObjectConfidenceBars";
 import AppShell from "@/app/components/AppShell";
+
+import { useAuth } from "@/app/context/AuthContext";
 
 function interpretSessionScore(scorePct: number) {
   if (scorePct >= 70) {
@@ -34,6 +38,8 @@ function interpretSessionScore(scorePct: number) {
 }
 
 export default function SessionScreen() {
+  const { modelMode } = useAuth();
+
   const { subjectId, sessionId } = useLocalSearchParams<{
     subjectId: string;
     sessionId: string;
@@ -48,7 +54,12 @@ export default function SessionScreen() {
       const subject = manifest.subjects.find((s: any) => s.id === subjectId);
       if (!subject) return;
 
-      const preferSubjectModel = subject.sessions.length >= 3;
+      const preferSubjectModel =
+        modelMode === "loso"
+          ? false
+          : modelMode === "subject"
+          ? true
+          : subject.sessions.length >= 3;
 
       const pred = await api.getPrediction(
         subjectId!,
@@ -72,7 +83,7 @@ export default function SessionScreen() {
     }
 
     load().catch(console.error);
-  }, [subjectId, sessionId]);
+  }, [subjectId, sessionId, modelMode]);
 
   const scorePct = useMemo(() => {
     if (!probs.length) return null;
