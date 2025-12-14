@@ -1,4 +1,5 @@
 import json
+import math
 from pathlib import Path
 from typing import Optional
 import numpy as np
@@ -29,6 +30,63 @@ def load_manifest():
         raise FileNotFoundError("Manifest not found. Run preprocess_all.py first.")
     return json.loads(MANIFEST_PATH.read_text())
 
+# NSI utilities
+def clamp(x, lo=0.0, hi=1.0):
+    return max(lo, min(hi, x))
+
+def compute_confidence_consistency(probs: np.ndarray) -> float:
+    """
+    Inverse entropy → higher = more confident / consistent
+    probs: array of probabilities for one session
+    """
+    eps = 1e-8
+    p = np.clip(probs, eps, 1 - eps)
+    entropy = -np.mean(p * np.log(p) + (1 - p) * np.log(1 - p))
+    max_entropy = -(
+        0.5 * math.log(0.5) + 0.5 * math.log(0.5)
+    )
+    return 1.0 - clamp(entropy / max_entropy)
+
+def compute_nsi(session_scores, confidence_scores):
+    """
+    session_scores: list of mean probabilities per session
+    confidence_scores: list of confidence consistency per session
+    """
+    n = len(session_scores)
+    if n < 3:
+        return None
+
+    scores = np.array(session_scores)
+
+    # A) Baseline
+    B = float(np.mean(scores[:2]))
+    B_norm = clamp(B)
+
+    # B) Variability
+    V = float(np.std(scores))
+    V_norm = clamp(V / 0.25)  # 0.25 ≈ high instability
+
+    # C) Improvement
+    I = (scores[-1] - scores[0]) / max(1, n - 1)
+    I_norm = clamp((I + 0.2) / 0.4)
+
+    # D) Confidence consistency
+    C = float(np.mean(confidence_scores))
+    C_norm = clamp(C)
+
+    nsi_raw = (
+        0.30 * (1 - B_norm) +
+        0.30 * (1 - V_norm) +
+        0.25 * I_norm +
+        0.15 * C_norm
+    )
+
+    return round(nsi_raw * 100), {
+        "baseline": round(B_norm, 3),
+        "variability": round(V_norm, 3),
+        "improvement": round(I_norm, 3),
+        "consistency": round(C_norm, 3),
+    }
 
 @app.get("/manifest")
 def get_manifest():
@@ -172,3 +230,58 @@ def predict_session(subject_id: str, session_id: str, prefer_subject_model: Opti
             resp["auc_error"] = str(e)
 
     return JSONResponse(resp)
+
+# --- Compute NSI for a subject across sessions ---
+@app.get("/nsi/{subject_id}")
+def get_nsi(subject_id: str):
+    manifest = load_manifest()
+    subject = next(
+        (s for s in manifest["subjects"] if s["id"] == subject_id),
+        None,
+    )
+    if not subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+
+    sessions = subject.get("sessions", [])
+    if len(sessions) < 3:
+        return {
+            "subject": subject_id,
+            "n_sessions": len(sessions),
+            "nsi": None,
+            "message": "NSI available after at least 3 sessions",
+        }
+
+    session_scores = []
+    confidence_scores = []
+
+    for sess in sessions:
+        session_id = sess["session"]
+
+        # Use SAME model selection logic as frontend auto mode
+        prefer_subject_model = len(sessions) >= 3
+
+        pred = predict_session(
+            subject_id,
+            session_id,
+            prefer_subject_model=prefer_subject_model,
+        ).body
+        pred = json.loads(pred.decode())
+
+        probs = np.array(pred["probs"])
+        session_scores.append(float(np.mean(probs)))
+        confidence_scores.append(compute_confidence_consistency(probs))
+
+    nsi_value, components = compute_nsi(
+        session_scores, confidence_scores
+    )
+
+    return {
+        "subject": subject_id,
+        "n_sessions": len(sessions),
+        "model_used": "subject" if prefer_subject_model else "loso",
+        "nsi": nsi_value,
+        "components": components,
+        "interpretation": (
+            "Higher NSI indicates more stable and adaptive neural responses"
+        ),
+    }

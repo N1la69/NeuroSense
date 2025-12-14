@@ -26,4 +26,5 @@ export const api = {
     apiGet<any>(
       `/predict/session/${subjectId}/${sessionId}?prefer_subject_model=${preferSubjectModel}`
     ),
+  getNSI: (subjectId: string) => apiGet<any>(`/nsi/${subjectId}`),
 };

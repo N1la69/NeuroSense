@@ -14,6 +14,8 @@ export default function HomeScreen() {
 
   const [scores, setScores] = useState<number[]>([]);
   const [sessions, setSessions] = useState<string[]>([]);
+  const [nsi, setNsi] = useState<number | null>(null);
+  const [nsiInfo, setNsiInfo] = useState<string | null>(null);
 
   function toPercent(score: number) {
     return Math.round(score * 100);
@@ -28,11 +30,11 @@ export default function HomeScreen() {
     }
 
     if (last - first > 5) {
-      return `Positive improvement observed: focus increased from ${first}% to ${last}%.`;
+      return `Positive improvement observed: Focus increased from ${first}% to ${last}%.`;
     }
 
     if (last - first < -5) {
-      return `Some variation seen: focus changed from ${first}% to ${last}%. This is normal during therapy.`;
+      return `Some variation seen: Focus changed from ${first}% to ${last}%. This is normal during therapy.`;
     }
 
     return `Focus level has remained stable around ${last}%.`;
@@ -44,9 +46,27 @@ export default function HomeScreen() {
     return { label: "Needs Practice", color: "#d32f2f" };
   }
 
+  function interpretNSI(value: number) {
+    if (value >= 80)
+      return { label: "Stable Neural Response", color: "#2e7d32" };
+    if (value >= 60)
+      return { label: "Developing Regulation", color: "#ed6c02" };
+    if (value >= 40) return { label: "High Variability", color: "#d32f2f" };
+    return { label: "Needs Strong Support", color: "#6a1b9a" };
+  }
+
   useEffect(() => {
     async function load() {
       const manifest = await api.getManifest();
+
+      const nsiRes = await api.getNSI(subjectId);
+      if (nsiRes.nsi !== null && nsiRes.nsi !== undefined) {
+        setNsi(nsiRes.nsi);
+        setNsiInfo(nsiRes.interpretation);
+      } else {
+        setNsi(null);
+      }
+
       const subject = manifest.subjects.find((s: any) => s.id === subjectId);
       if (!subject) return;
 
@@ -198,6 +218,64 @@ export default function HomeScreen() {
             {latest.label}
           </Text>
         </View>
+
+        {nsi !== null && (
+          <View
+            style={{
+              marginTop: 24,
+              padding: 16,
+              borderRadius: 12,
+              backgroundColor: "#eef2ff",
+              borderWidth: 1,
+              borderColor: "#c7d2fe",
+            }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: "700", color: "#3730a3" }}>
+              Neural Response Stability Index (NSI)
+            </Text>
+
+            {(() => {
+              const info = interpretNSI(nsi);
+              return (
+                <>
+                  <Text
+                    style={{
+                      marginTop: 8,
+                      fontSize: 36,
+                      fontWeight: "800",
+                      color: info.color,
+                    }}
+                  >
+                    {nsi}
+                  </Text>
+
+                  <Text
+                    style={{
+                      marginTop: 4,
+                      fontWeight: "600",
+                      color: info.color,
+                    }}
+                  >
+                    {info.label}
+                  </Text>
+                </>
+              );
+            })()}
+
+            <Text
+              style={{
+                marginTop: 10,
+                fontSize: 12,
+                color: "#555",
+                lineHeight: 16,
+              }}
+            >
+              NSI reflects how stable and adaptable your child&apos;s neural
+              responses are across multiple therapy sessions. It is a
+              non-clinical, progress-tracking indicator.
+            </Text>
+          </View>
+        )}
 
         {/* Sessions */}
         <Text style={{ marginTop: 28, fontSize: 18, fontWeight: "600" }}>
