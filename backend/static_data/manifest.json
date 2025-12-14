@@ -1,0 +1,919 @@
+{
+  "subjects": [
+    {
+      "id": "SBJ01",
+      "sessions": [
+        {
+          "subject": "SBJ01",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ01\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ01\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ01",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ01\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ01\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ01",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ01\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ01\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ01",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ01\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ01\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ01",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ01\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ01\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ01",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ01\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ01\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ01",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ01\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ01\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ02",
+      "sessions": [
+        {
+          "subject": "SBJ02",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ02\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ02\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ02",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ02\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ02\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ02",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ02\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ02\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ02",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ02\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ02\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ02",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ02\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ02\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ02",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ02\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ02\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ02",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ02\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ02\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ03",
+      "sessions": [
+        {
+          "subject": "SBJ03",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ03\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ03\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ03",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ03\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ03\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ03",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ03\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ03\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ03",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ03\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ03\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ03",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ03\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ03\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ03",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ03\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ03\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ03",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ03\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ03\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ04",
+      "sessions": [
+        {
+          "subject": "SBJ04",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ04\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ04\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ04",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ04\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ04\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ04",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ04\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ04\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ04",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ04\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ04\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ04",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ04\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ04\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ04",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ04\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ04\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ04",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ04\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ04\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ05",
+      "sessions": [
+        {
+          "subject": "SBJ05",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ05\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ05\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ05",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ05\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ05\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ05",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ05\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ05\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ05",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ05\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ05\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ05",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ05\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ05\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ05",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ05\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ05\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ05",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ05\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ05\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ06",
+      "sessions": [
+        {
+          "subject": "SBJ06",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ06\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ06\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ06",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ06\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ06\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ06",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ06\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ06\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ06",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ06\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ06\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ06",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ06\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ06\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ06",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ06\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ06\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ06",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ06\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ06\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ07",
+      "sessions": [
+        {
+          "subject": "SBJ07",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ07\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ07\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ07",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ07\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ07\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ07",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ07\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ07\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ07",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ07\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ07\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ07",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ07\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ07\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ07",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ07\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ07\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ07",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ07\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ07\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ08",
+      "sessions": [
+        {
+          "subject": "SBJ08",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ08\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ08\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ08",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ08\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ08\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ08",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ08\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ08\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ08",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ08\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ08\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ08",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ08\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ08\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ08",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ08\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ08\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ08",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ08\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ08\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ09",
+      "sessions": [
+        {
+          "subject": "SBJ09",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ09\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ09\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ09",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ09\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ09\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ09",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ09\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ09\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ09",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ09\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ09\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ09",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ09\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ09\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ09",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ09\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ09\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ09",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ09\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ09\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ10",
+      "sessions": [
+        {
+          "subject": "SBJ10",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ10\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ10\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ10",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ10\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ10\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ10",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ10\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ10\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ10",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ10\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ10\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ10",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ10\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ10\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ10",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ10\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ10\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ10",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ10\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ10\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ11",
+      "sessions": [
+        {
+          "subject": "SBJ11",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ11\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ11\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ11",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ11\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ11\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ11",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ11\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ11\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ11",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ11\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ11\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ11",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ11\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ11\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ11",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ11\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ11\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ11",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ11\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ11\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ12",
+      "sessions": [
+        {
+          "subject": "SBJ12",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ12\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ12\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ12",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ12\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ12\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ12",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ12\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ12\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ12",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ12\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ12\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ12",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ12\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ12\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ12",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ12\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ12\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ12",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ12\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ12\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ13",
+      "sessions": [
+        {
+          "subject": "SBJ13",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ13\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ13\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ13",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ13\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ13\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ13",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ13\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ13\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ13",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ13\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ13\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ13",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ13\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ13\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ13",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ13\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ13\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ13",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ13\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ13\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ14",
+      "sessions": [
+        {
+          "subject": "SBJ14",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ14\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ14\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ14",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ14\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ14\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ14",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ14\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ14\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ14",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ14\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ14\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ14",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ14\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ14\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ14",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ14\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ14\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ14",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ14\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ14\\S07\\test_features.npz"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SBJ15",
+      "sessions": [
+        {
+          "subject": "SBJ15",
+          "session": "S01",
+          "files": {
+            "train": "backend\\static_data\\SBJ15\\S01\\train_features.npz",
+            "test": "backend\\static_data\\SBJ15\\S01\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ15",
+          "session": "S02",
+          "files": {
+            "train": "backend\\static_data\\SBJ15\\S02\\train_features.npz",
+            "test": "backend\\static_data\\SBJ15\\S02\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ15",
+          "session": "S03",
+          "files": {
+            "train": "backend\\static_data\\SBJ15\\S03\\train_features.npz",
+            "test": "backend\\static_data\\SBJ15\\S03\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ15",
+          "session": "S04",
+          "files": {
+            "train": "backend\\static_data\\SBJ15\\S04\\train_features.npz",
+            "test": "backend\\static_data\\SBJ15\\S04\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ15",
+          "session": "S05",
+          "files": {
+            "train": "backend\\static_data\\SBJ15\\S05\\train_features.npz",
+            "test": "backend\\static_data\\SBJ15\\S05\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ15",
+          "session": "S06",
+          "files": {
+            "train": "backend\\static_data\\SBJ15\\S06\\train_features.npz",
+            "test": "backend\\static_data\\SBJ15\\S06\\test_features.npz"
+          }
+        },
+        {
+          "subject": "SBJ15",
+          "session": "S07",
+          "files": {
+            "train": "backend\\static_data\\SBJ15\\S07\\train_features.npz",
+            "test": "backend\\static_data\\SBJ15\\S07\\test_features.npz"
+          }
+        }
+      ]
+    }
+  ]
+}

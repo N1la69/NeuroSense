@@ -2,7 +2,6 @@
 
 # dependencies
 node_modules/
-static_data/
 
 # Expo
 .expo/
