@@ -48,12 +48,18 @@ export default function SubjectScreen() {
       const subject = manifest.subjects.find((s: any) => s.id === subjectId);
       if (!subject) return;
 
+      const preferSubjectModel = subject.sessions.length >= 3;
+
       const summaries: SessionSummary[] = [];
 
       for (const sess of subject.sessions) {
         try {
           const sessionId = sess.session;
-          const pred = await api.getPrediction(subjectId!, sessionId);
+          const pred = await api.getPrediction(
+            subjectId!,
+            sessionId,
+            preferSubjectModel
+          );
 
           const score =
             pred.auc ??

@@ -13,15 +13,6 @@ export default function HomeScreen() {
   const [scores, setScores] = useState<number[]>([]);
   const [sessions, setSessions] = useState<string[]>([]);
 
-  function getSessionScore(pred: any) {
-    if (pred.auc !== null && pred.auc !== undefined) {
-      return pred.auc;
-    }
-    return (
-      pred.probs.reduce((a: number, b: number) => a + b, 0) / pred.probs.length
-    );
-  }
-
   function toPercent(score: number) {
     return Math.round(score * 100);
   }
@@ -57,11 +48,17 @@ export default function HomeScreen() {
       const subject = manifest.subjects.find((s: any) => s.id === subjectId);
       if (!subject) return;
 
+      const preferSubjectModel = subject.sessions.length >= 3;
+
       const s: number[] = [];
       const ids: string[] = [];
 
       for (const sess of subject.sessions) {
-        const pred = await api.getPrediction(subjectId, sess.session);
+        const pred = await api.getPrediction(
+          subjectId,
+          sess.session,
+          preferSubjectModel
+        );
         s.push(
           pred.auc ??
             pred.probs.reduce((a: number, b: number) => a + b, 0) /

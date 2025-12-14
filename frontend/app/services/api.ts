@@ -18,8 +18,12 @@ async function apiGet<T>(path: string): Promise<T> {
 
 export const api = {
   getManifest: () => apiGet<any>("/manifest"),
-  getPrediction: (subjectId: string, sessionId: string) =>
+  getPrediction: (
+    subjectId: string,
+    sessionId: string,
+    preferSubjectModel: boolean
+  ) =>
     apiGet<any>(
-      `/predict/session/${subjectId}/${sessionId}?prefer_subject_model=true`
+      `/predict/session/${subjectId}/${sessionId}?prefer_subject_model=${preferSubjectModel}`
     ),
 };

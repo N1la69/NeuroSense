@@ -44,7 +44,17 @@ export default function SessionScreen() {
 
   useEffect(() => {
     async function load() {
-      const pred = await api.getPrediction(subjectId!, sessionId!);
+      const manifest = await api.getManifest();
+      const subject = manifest.subjects.find((s: any) => s.id === subjectId);
+      if (!subject) return;
+
+      const preferSubjectModel = subject.sessions.length >= 3;
+
+      const pred = await api.getPrediction(
+        subjectId!,
+        sessionId!,
+        preferSubjectModel
+      );
       setProbs(pred.probs);
 
       const metaRes = await fetch(
