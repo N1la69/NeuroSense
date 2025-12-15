@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Query
 from sklearn.metrics import roc_auc_score
 from app.models_serving import get_subject_model, get_generalized_model, predict_with_model
+from app.recommendation import recommend_next_game
 
 ROOT = Path(__file__).resolve().parents[2]  # repo root
 STATIC_DIR = ROOT / "backend" / "static_data"
@@ -24,11 +25,75 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+# --- Utility functions ---
 def load_manifest():
     if not MANIFEST_PATH.exists():
         raise FileNotFoundError("Manifest not found. Run preprocess_all.py first.")
     return json.loads(MANIFEST_PATH.read_text())
+
+def load_npz_as_json(npz_path: Path):
+    if not npz_path.exists():
+        raise HTTPException(status_code=404, detail=f"{npz_path.name} not found")
+    # load compressed npz
+    with np.load(npz_path, allow_pickle=True) as d:
+        out = {}
+        for k, v in d.items():
+            # Attempt to convert arrays to lists; keep small metadata as-is
+            if isinstance(v, np.ndarray):
+                # convert to Python lists but keep shapes small
+                out[k] = v.tolist()
+            else:
+                # other types (int, str) -> convert
+                try:
+                    out[k] = json.loads(v) if isinstance(v, (str, np.str_)) else v
+                except Exception:
+                    out[k] = v.item() if hasattr(v, "item") else str(v)
+    return out
+
+def get_session_probs(subject_id: str, session_id: str, prefer_subject_model: bool):
+    train_path = STATIC_DIR / subject_id / session_id / "train_features.npz"
+    if not train_path.exists():
+        raise FileNotFoundError
+
+    with np.load(train_path, allow_pickle=True) as d:
+        X = d.get("X")
+
+    try:
+        subj_num = int(subject_id.replace("SBJ", ""))
+    except:
+        subj_num = None
+
+    model_bundle = None
+    if prefer_subject_model and subj_num is not None:
+        try:
+            model_bundle = get_subject_model(subj_num)
+        except FileNotFoundError:
+            pass
+
+    if model_bundle is None:
+        model_bundle = get_generalized_model()
+
+    return predict_with_model(model_bundle, X)
+
+def load_session_scores(subject_id: str):
+    manifest = load_manifest()
+    subject = next(s for s in manifest["subjects"] if s["id"] == subject_id)
+
+    scores = []
+    for sess in subject["sessions"]:
+        probs = get_session_probs(
+            subject_id,
+            sess["session"],
+            prefer_subject_model=len(subject["sessions"]) >= 3,
+        )
+        scores.append(float(np.mean(probs)))
+
+    return scores
+
+def load_nsi(subject_id: str):
+    resp = get_nsi(subject_id)
+    return resp["nsi"]
+
 
 # NSI utilities
 def clamp(x, lo=0.0, hi=1.0):
@@ -88,6 +153,7 @@ def compute_nsi(session_scores, confidence_scores):
         "consistency": round(C_norm, 3),
     }
 
+# --- API Endpoints ---
 @app.get("/manifest")
 def get_manifest():
     try:
@@ -95,13 +161,11 @@ def get_manifest():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.get("/subjects")
 def list_subjects():
     manifest = load_manifest()
     subjects = [s["id"] for s in manifest.get("subjects", [])]
     return {"subjects": subjects}
-
 
 @app.get("/subjects/{subject_id}/sessions")
 def list_sessions(subject_id: str):
@@ -113,27 +177,6 @@ def list_sessions(subject_id: str):
             return {"subject": subject_id, "sessions": s.get("sessions", [])}
     raise HTTPException(status_code=404, detail=f"Subject {subject_id} not found")
 
-
-def load_npz_as_json(npz_path: Path):
-    if not npz_path.exists():
-        raise HTTPException(status_code=404, detail=f"{npz_path.name} not found")
-    # load compressed npz
-    with np.load(npz_path, allow_pickle=True) as d:
-        out = {}
-        for k, v in d.items():
-            # Attempt to convert arrays to lists; keep small metadata as-is
-            if isinstance(v, np.ndarray):
-                # convert to Python lists but keep shapes small
-                out[k] = v.tolist()
-            else:
-                # other types (int, str) -> convert
-                try:
-                    out[k] = json.loads(v) if isinstance(v, (str, np.str_)) else v
-                except Exception:
-                    out[k] = v.item() if hasattr(v, "item") else str(v)
-    return out
-
-
 @app.get("/data/{subject_id}/{session_id}/train")
 def get_train_features(subject_id: str, session_id: str):
     rel_path = STATIC_DIR / subject_id / session_id / "train_features.npz"
@@ -141,7 +184,6 @@ def get_train_features(subject_id: str, session_id: str):
         raise HTTPException(status_code=404, detail="train_features.npz not found for this session")
     payload = load_npz_as_json(rel_path)
     return JSONResponse(payload)
-
 
 @app.get("/data/{subject_id}/{session_id}/test")
 def get_test_features(subject_id: str, session_id: str):
@@ -151,7 +193,6 @@ def get_test_features(subject_id: str, session_id: str):
     payload = load_npz_as_json(rel_path)
     return JSONResponse(payload)
 
-
 @app.get("/raw/static/{path:path}")
 def serve_static(path: str):
     # if you want to serve the raw .npz or manifest file directly
@@ -160,7 +201,6 @@ def serve_static(path: str):
         raise HTTPException(status_code=404, detail="file not found")
     return FileResponse(file_path)
 
-# --- Model listing ---
 @app.get("/models/list")
 def list_models():
     out = {"subject_models": [], "generalized_model": False}
@@ -172,7 +212,6 @@ def list_models():
     out["generalized_model"] = gen.exists()
     return out
 
-# --- Predict for a session using saved features ---
 @app.get("/predict/session/{subject_id}/{session_id}")
 def predict_session(subject_id: str, session_id: str, prefer_subject_model: Optional[bool] = Query(True)):
     """
@@ -231,7 +270,6 @@ def predict_session(subject_id: str, session_id: str, prefer_subject_model: Opti
 
     return JSONResponse(resp)
 
-# --- Compute NSI for a subject across sessions ---
 @app.get("/nsi/{subject_id}")
 def get_nsi(subject_id: str):
     manifest = load_manifest()
@@ -260,14 +298,12 @@ def get_nsi(subject_id: str):
         # Use SAME model selection logic as frontend auto mode
         prefer_subject_model = len(sessions) >= 3
 
-        pred = predict_session(
+        probs = get_session_probs(
             subject_id,
             session_id,
-            prefer_subject_model=prefer_subject_model,
-        ).body
-        pred = json.loads(pred.decode())
+            prefer_subject_model
+        )
 
-        probs = np.array(pred["probs"])
         session_scores.append(float(np.mean(probs)))
         confidence_scores.append(compute_confidence_consistency(probs))
 
@@ -285,3 +321,15 @@ def get_nsi(subject_id: str):
             "Higher NSI indicates more stable and adaptive neural responses"
         ),
     }
+
+@app.get("/recommend/next/{subject_id}")
+def recommend_next(subject_id: str):
+    # load session scores (reuse same logic as NSI)
+    scores = load_session_scores(subject_id)  # your existing helper
+    if len(scores) < 3:
+        raise HTTPException(status_code=400, detail="Not enough sessions")
+
+    nsi = load_nsi(subject_id)  # already exists
+    last_game = None  # placeholder until real games are logged
+
+    return recommend_next_game(nsi, scores, last_game)
