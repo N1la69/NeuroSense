@@ -7,6 +7,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Query
+from fastapi import Body
+from datetime import datetime
 from sklearn.metrics import roc_auc_score
 from app.models_serving import get_subject_model, get_generalized_model, predict_with_model
 from app.recommendation import recommend_next_game
@@ -16,6 +18,7 @@ from app.game_history import log_game, get_last_game
 ROOT = Path(__file__).resolve().parents[2]  # repo root
 STATIC_DIR = ROOT / "backend" / "static_data"
 MANIFEST_PATH = STATIC_DIR / "manifest.json"
+GAME_LOG_PATH = STATIC_DIR / "game_history.json"
 
 app = FastAPI(title="NeuroSense Backend (dev)")
 
@@ -337,21 +340,30 @@ def recommend_next(subject_id: str):
     return recommend_next_game(nsi, scores, subject_id, last_game)
 
 @app.post("/game/log")
-def log_played_game(payload: dict):
+def log_game(payload: dict = Body(...)):
     """
-    Payload:
-    {
-      "subject_id": "SBJ01",
-      "session_id": "S03",
-      "game_id": "color_focus"
-    }
+    Logs when a recommended activity is started.
     """
     try:
-        log_game(
-            payload["subject_id"],
-            payload["session_id"],
-            payload["game_id"]
-        )
-        return {"status": "ok"}
+        entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "subject_id": payload.get("subject_id"),
+            "session_id": payload.get("session_id"),
+            "game_id": payload.get("game_id"),
+            "source": payload.get("source", "unknown"),
+        }
+
+        # Load existing logs
+        if GAME_LOG_PATH.exists():
+            history = json.loads(GAME_LOG_PATH.read_text())
+        else:
+            history = []
+
+        history.append(entry)
+
+        GAME_LOG_PATH.write_text(json.dumps(history, indent=2))
+
+        return {"success": True, "logged": entry}
+
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))

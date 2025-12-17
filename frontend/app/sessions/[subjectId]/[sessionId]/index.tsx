@@ -1,7 +1,7 @@
 //frontend/app/sessions/[subjectId]/[sessionId]/index.tsx
 
-import { View, Text, ScrollView } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { api, BASE_URL } from "@/app/services/api";
 import { aggregateP300 } from "@/app/utils/p300";
@@ -39,6 +39,7 @@ function interpretSessionScore(scorePct: number) {
 
 export default function SessionScreen() {
   const { modelMode } = useAuth();
+  const router = useRouter();
 
   const { subjectId, sessionId } = useLocalSearchParams<{
     subjectId: string;
@@ -341,6 +342,42 @@ export default function SessionScreen() {
               </Text>
             ))}
           </View>
+        )}
+
+        {recommendedGame && (
+          <Pressable
+            style={{ marginTop: 16 }}
+            onPress={async () => {
+              try {
+                await fetch(`${BASE_URL}/game/log`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    subject_id: subjectId,
+                    game_id: recommendedGame.game_id,
+                    source: "recommendation",
+                  }),
+                });
+
+                Alert.alert(
+                  "Activity Started",
+                  `${recommendedGame.game_name} has been logged successfully.`
+                );
+              } catch (e) {
+                Alert.alert("Error", "Failed to log activity");
+              }
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "700",
+                color: "#4f7cff",
+              }}
+            >
+              Start Activity
+            </Text>
+          </Pressable>
         )}
       </ScrollView>
     </AppShell>
