@@ -334,10 +334,9 @@ def recommend_next(subject_id: str):
     if len(scores) < 3:
         raise HTTPException(status_code=400, detail="Not enough sessions")
 
-    nsi = load_nsi(subject_id)  # already exists
-    last_game = get_last_game(subject_id)
+    nsi = load_nsi(subject_id)
 
-    return recommend_next_game(nsi, scores, subject_id, last_game)
+    return recommend_next_game(nsi, scores, subject_id)
 
 @app.post("/game/log")
 def log_game(payload: dict = Body(...)):

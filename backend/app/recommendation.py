@@ -1,5 +1,11 @@
 import numpy as np
 import hashlib
+import json
+from pathlib import Path
+
+# Define the static directory path
+ROOT = Path(__file__).resolve().parents[2]
+STATIC_DIR = ROOT / "backend" / "static_data"
 
 # -------------------------------------------------------------------
 # GAME DEFINITIONS
@@ -22,6 +28,7 @@ GAMES = {
         "AD": 2.6,
         "EB": 0.9,
     },
+    "memory_match":  { "name": "Memory Match",      "AD": 3.0, "EB": 0.8 },
 }
 
 
@@ -32,6 +39,24 @@ def compute_trend(scores):
     if len(scores) < 3:
         return 0.0
     return float((scores[-1] - scores[-3]) / 2)
+
+def load_game_history(subject_id):
+    path = STATIC_DIR / "game_history.json"
+    if not path.exists():
+        return []
+
+    history = json.loads(path.read_text())
+    return [h for h in history if h["subject_id"] == subject_id]
+
+def game_history_bias(game_id, history):
+    """
+    Penalize games that were recently overused.
+    """
+    recent = history[-5:]  # last 5 plays
+    count = sum(1 for h in recent if h["game_id"] == game_id)
+
+    # stronger penalty if repeated often
+    return -0.4 * count
 
 
 # -------------------------------------------------------------------
@@ -71,9 +96,15 @@ def session_rotation_bias(session_count, game_id):
 # -------------------------------------------------------------------
 # ✅ FINAL RECOMMENDER (INTELLIGENT + EXPLAINABLE)
 # -------------------------------------------------------------------
-def recommend_next_game(nsi, session_scores, subject_id, last_game=None):
+def recommend_next_game(nsi, session_scores, subject_id):
     session_count = len(session_scores)
     explanations = []
+
+    # -------------------------------
+    # Load game history
+    # -------------------------------
+    history = load_game_history(subject_id)
+    last_game = history[-1]["game_id"] if history else None
 
     # -------------------------------
     # Core behavioral signals
@@ -97,6 +128,7 @@ def recommend_next_game(nsi, session_scores, subject_id, last_game=None):
     ranked = []
 
     for key, g in GAMES.items():
+        # HARD avoid immediate repetition
         if key == last_game:
             continue
 
@@ -116,6 +148,7 @@ def recommend_next_game(nsi, session_scores, subject_id, last_game=None):
             base_score
             + subject_hash_bias(subject_id, key)
             + session_rotation_bias(session_count, key)
+            + game_history_bias(key, history)   # ⭐ NEW
         )
 
         ranked.append((score, key))
@@ -143,6 +176,9 @@ def recommend_next_game(nsi, session_scores, subject_id, last_game=None):
     if variability > 0.12:
         explanations.append("High variability detected across recent activities")
 
+    if history:
+        explanations.append("Introducing activity variation to maintain engagement")
+
     explanations.append(
         f"Activity difficulty matched to current attention demand (AD ≈ {round(target_ad, 1)})"
     )
@@ -156,3 +192,4 @@ def recommend_next_game(nsi, session_scores, subject_id, last_game=None):
         "mode": f"adaptive (target AD ≈ {round(target_ad, 1)})",
         "explanations": explanations,
     }
+
