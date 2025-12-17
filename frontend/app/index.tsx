@@ -16,6 +16,7 @@ export default function HomeScreen() {
   const [sessions, setSessions] = useState<string[]>([]);
   const [nsi, setNsi] = useState<number | null>(null);
   const [nsiInfo, setNsiInfo] = useState<string | null>(null);
+  const [recommendation, setRecommendation] = useState<any | null>(null);
 
   function toPercent(score: number) {
     return Math.round(score * 100);
@@ -96,6 +97,13 @@ export default function HomeScreen() {
 
       setScores(s);
       setSessions(ids);
+
+      try {
+        const rec = await api.getRecommendation(subjectId);
+        setRecommendation(rec);
+      } catch {
+        setRecommendation(null); // <3 sessions or unavailable
+      }
     }
 
     load().catch(console.error);
@@ -219,6 +227,7 @@ export default function HomeScreen() {
           </Text>
         </View>
 
+        {/* NSI */}
         {nsi !== null && (
           <View
             style={{
@@ -274,6 +283,61 @@ export default function HomeScreen() {
               responses are across multiple therapy sessions. It is a
               non-clinical, progress-tracking indicator.
             </Text>
+          </View>
+        )}
+
+        {/* GAME */}
+        {recommendation && (
+          <View
+            style={{
+              marginTop: 20,
+              padding: 16,
+              borderRadius: 12,
+              backgroundColor: "#eef2ff",
+              borderWidth: 1,
+              borderColor: "#c7d2fe",
+            }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: "700", color: "#1e3a8a" }}>
+              Recommended Next Activity
+            </Text>
+
+            <Text
+              style={{
+                marginTop: 8,
+                fontSize: 20,
+                fontWeight: "800",
+                color: "#3730a3",
+              }}
+            >
+              {recommendation.game_name}
+            </Text>
+
+            <Text
+              style={{
+                marginTop: 6,
+                fontSize: 13,
+                color: "#555",
+                lineHeight: 18,
+              }}
+            >
+              {recommendation.reason}
+            </Text>
+
+            <View
+              style={{
+                marginTop: 10,
+                alignSelf: "flex-start",
+                paddingVertical: 4,
+                paddingHorizontal: 10,
+                borderRadius: 999,
+                backgroundColor: "#4f7cff",
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}>
+                MODE: {recommendation.mode.toUpperCase()}
+              </Text>
+            </View>
           </View>
         )}
 

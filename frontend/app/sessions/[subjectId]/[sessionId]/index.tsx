@@ -47,6 +47,7 @@ export default function SessionScreen() {
 
   const [probs, setProbs] = useState<number[]>([]);
   const [blockResults, setBlockResults] = useState<any[]>([]);
+  const [recommendedGame, setRecommendedGame] = useState<any>(null);
 
   useEffect(() => {
     async function load() {
@@ -67,6 +68,24 @@ export default function SessionScreen() {
         preferSubjectModel
       );
       setProbs(pred.probs);
+
+      const recRes = await fetch(`${BASE_URL}/recommend/next/${subjectId}`);
+      if (recRes.ok) {
+        const rec = await recRes.json();
+        setRecommendedGame(rec);
+      }
+
+      if (recommendedGame?.game_id) {
+        await fetch(`${BASE_URL}/game/log`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject_id: subjectId,
+            session_id: sessionId,
+            game_id: recommendedGame.game_id,
+          }),
+        });
+      }
 
       const metaRes = await fetch(
         `${BASE_URL}/data/${subjectId}/${sessionId}/test`
@@ -99,6 +118,7 @@ export default function SessionScreen() {
   }
 
   const interpretation = interpretSessionScore(scorePct);
+  //console.log("RECOMMENDED GAME:", recommendedGame);
 
   // Aggregate object preference
   const objectSummary = useMemo(() => {
@@ -215,8 +235,8 @@ export default function SessionScreen() {
               lineHeight: 16,
             }}
           >
-            It’s normal for attention levels to vary from session to session.
-            Progress is measured over time, not by a single day.
+            It&apos;s normal for attention levels to vary from session to
+            session. Progress is measured over time, not by a single day.
           </Text>
         </View>
 
@@ -231,6 +251,31 @@ export default function SessionScreen() {
               Your child responded most consistently to visual option #
               {objectSummary}.
             </Text>
+          </View>
+        )}
+
+        {recommendedGame && (
+          <View style={{ marginTop: 28 }}>
+            <Text style={{ fontSize: 16, fontWeight: "600" }}>
+              Recommended Next Activity
+            </Text>
+
+            <View
+              style={{
+                marginTop: 8,
+                padding: 14,
+                borderRadius: 10,
+                backgroundColor: "#eef2ff",
+              }}
+            >
+              <Text style={{ fontWeight: "700" }}>
+                {recommendedGame.game_name}
+              </Text>
+
+              <Text style={{ marginTop: 4, color: "#555", fontSize: 13 }}>
+                {recommendedGame.reason}
+              </Text>
+            </View>
           </View>
         )}
 

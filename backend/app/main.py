@@ -10,6 +10,8 @@ from fastapi import Query
 from sklearn.metrics import roc_auc_score
 from app.models_serving import get_subject_model, get_generalized_model, predict_with_model
 from app.recommendation import recommend_next_game
+from app.game_history import log_game, get_last_game
+
 
 ROOT = Path(__file__).resolve().parents[2]  # repo root
 STATIC_DIR = ROOT / "backend" / "static_data"
@@ -330,6 +332,26 @@ def recommend_next(subject_id: str):
         raise HTTPException(status_code=400, detail="Not enough sessions")
 
     nsi = load_nsi(subject_id)  # already exists
-    last_game = None  # placeholder until real games are logged
+    last_game = get_last_game(subject_id)
 
-    return recommend_next_game(nsi, scores, last_game)
+    return recommend_next_game(nsi, scores, subject_id, last_game)
+
+@app.post("/game/log")
+def log_played_game(payload: dict):
+    """
+    Payload:
+    {
+      "subject_id": "SBJ01",
+      "session_id": "S03",
+      "game_id": "color_focus"
+    }
+    """
+    try:
+        log_game(
+            payload["subject_id"],
+            payload["session_id"],
+            payload["game_id"]
+        )
+        return {"status": "ok"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
