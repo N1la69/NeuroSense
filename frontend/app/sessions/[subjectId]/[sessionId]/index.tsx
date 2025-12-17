@@ -62,6 +62,7 @@ export default function SessionScreen() {
           ? true
           : subject.sessions.length >= 3;
 
+      // --- Prediction ---
       const pred = await api.getPrediction(
         subjectId!,
         sessionId!,
@@ -69,24 +70,14 @@ export default function SessionScreen() {
       );
       setProbs(pred.probs);
 
+      // --- Recommendation ---
       const recRes = await fetch(`${BASE_URL}/recommend/next/${subjectId}`);
       if (recRes.ok) {
         const rec = await recRes.json();
         setRecommendedGame(rec);
       }
 
-      if (recommendedGame?.game_id) {
-        await fetch(`${BASE_URL}/game/log`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            subject_id: subjectId,
-            session_id: sessionId,
-            game_id: recommendedGame.game_id,
-          }),
-        });
-      }
-
+      // --- Metadata ---
       const metaRes = await fetch(
         `${BASE_URL}/data/${subjectId}/${sessionId}/test`
       );
@@ -103,6 +94,10 @@ export default function SessionScreen() {
 
     load().catch(console.error);
   }, [subjectId, sessionId, modelMode]);
+
+  useEffect(() => {
+    console.log("Recommended Game:", recommendedGame);
+  }, [recommendedGame]);
 
   const scorePct = useMemo(() => {
     if (!probs.length) return null;
@@ -254,31 +249,6 @@ export default function SessionScreen() {
           </View>
         )}
 
-        {recommendedGame && (
-          <View style={{ marginTop: 28 }}>
-            <Text style={{ fontSize: 16, fontWeight: "600" }}>
-              Recommended Next Activity
-            </Text>
-
-            <View
-              style={{
-                marginTop: 8,
-                padding: 14,
-                borderRadius: 10,
-                backgroundColor: "#eef2ff",
-              }}
-            >
-              <Text style={{ fontWeight: "700" }}>
-                {recommendedGame.game_name}
-              </Text>
-
-              <Text style={{ marginTop: 4, color: "#555", fontSize: 13 }}>
-                {recommendedGame.reason}
-              </Text>
-            </View>
-          </View>
-        )}
-
         {/* SIMPLIFIED ACTIVITY VISUALS */}
         {blockResults.length > 0 && (
           <View style={{ marginTop: 28 }}>
@@ -314,6 +284,62 @@ export default function SessionScreen() {
             <Text style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
               Showing key activities only
             </Text>
+          </View>
+        )}
+
+        {/* ACTIVITY RECOMMENDATION */}
+        {recommendedGame && (
+          <View
+            style={{
+              marginTop: 28,
+              padding: 16,
+              borderRadius: 12,
+              backgroundColor: "#eef2ff",
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: "700" }}>
+              Recommended Next Activity
+            </Text>
+
+            <Text
+              style={{
+                marginTop: 6,
+                fontSize: 18,
+                fontWeight: "700",
+                color: "#4f7cff",
+              }}
+            >
+              {recommendedGame.game_name}
+            </Text>
+
+            {recommendedGame.mode && (
+              <Text style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
+                Mode: {recommendedGame.mode}
+              </Text>
+            )}
+
+            <Text
+              style={{
+                marginTop: 10,
+                fontWeight: "600",
+                fontSize: 14,
+              }}
+            >
+              Why this activity?
+            </Text>
+
+            {recommendedGame.explanations?.map((e: string, i: number) => (
+              <Text
+                key={i}
+                style={{
+                  marginTop: 4,
+                  fontSize: 13,
+                  color: "#333",
+                }}
+              >
+                • {e}
+              </Text>
+            ))}
           </View>
         )}
       </ScrollView>

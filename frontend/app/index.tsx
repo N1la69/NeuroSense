@@ -315,14 +315,26 @@ export default function HomeScreen() {
 
             <Text
               style={{
-                marginTop: 6,
-                fontSize: 13,
-                color: "#555",
-                lineHeight: 18,
+                marginTop: 10,
+                fontWeight: "600",
+                fontSize: 14,
               }}
             >
-              {recommendation.reason}
+              Why this activity?
             </Text>
+
+            {recommendation.explanations?.map((e: string, i: number) => (
+              <Text
+                key={i}
+                style={{
+                  marginTop: 4,
+                  fontSize: 13,
+                  color: "#333",
+                }}
+              >
+                • {e}
+              </Text>
+            ))}
 
             <View
               style={{

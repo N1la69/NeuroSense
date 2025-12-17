@@ -1,61 +1,89 @@
 import numpy as np
 import hashlib
-from app.games import GAMES
+
+# -------------------------------------------------------------------
+# GAME DEFINITIONS
+# AD = Attention Demand (1 easy → 3 hard)
+# EB = Engagement Bias (baseline preference)
+# -------------------------------------------------------------------
+GAMES = {
+    "follow_animal": {
+        "name": "Follow the Animal",
+        "AD": 1.2,
+        "EB": 0.8,
+    },
+    "color_focus": {
+        "name": "Color Focus",
+        "AD": 2.0,
+        "EB": 1.0,
+    },
+    "find_the_star": {
+        "name": "Find the Star",
+        "AD": 2.6,
+        "EB": 0.9,
+    },
+}
 
 
-# -----------------------------
-# Helpers
-# -----------------------------
-def compute_trend(session_scores):
-    if len(session_scores) < 4:
+# -------------------------------------------------------------------
+# Helper: trend computation
+# -------------------------------------------------------------------
+def compute_trend(scores):
+    if len(scores) < 3:
         return 0.0
-    recent = np.mean(session_scores[-2:])
-    earlier = np.mean(session_scores[-4:-2])
-    return float(recent - earlier)
+    return float((scores[-1] - scores[-3]) / 2)
 
 
+# -------------------------------------------------------------------
+# Helper: target attention demand from NSI
+# -------------------------------------------------------------------
 def target_attention_demand(nsi):
-    if nsi < 45:
-        return 1.0
-    if nsi < 55:
-        return 1.5
-    if nsi < 65:
-        return 2.0
-    if nsi < 75:
-        return 2.5
-    return 3.0
-
-
-def subject_hash_bias(subject_id: str, game_key: str) -> float:
     """
-    Deterministic, tiny bias so different children
-    don't collapse to the same game
+    Maps NSI (0–100) → AD (1.0–3.0)
+    Uses a soft curve to avoid clustering
     """
-    h = hashlib.md5(f"{subject_id}:{game_key}".encode()).hexdigest()
-    return (int(h[:2], 16) / 255.0 - 0.5) * 0.2  # range ≈ ±0.1
+    return 1.0 + 2.0 * np.clip((nsi - 40) / 40, 0, 1)
 
 
-def session_rotation_bias(session_count: int, game_key: str) -> float:
+# -------------------------------------------------------------------
+# Helper: subject diversity bias
+# -------------------------------------------------------------------
+def subject_hash_bias(subject_id, game_id):
     """
-    Encourages gentle rotation over sessions
+    Deterministic but different per subject
+    Prevents all subjects choosing same game
     """
-    keys = sorted(GAMES.keys())
-    idx = keys.index(game_key)
-    preferred = session_count % len(keys)
-    return 0.15 if idx == preferred else 0.0
+    h = hashlib.md5(f"{subject_id}_{game_id}".encode()).hexdigest()
+    return (int(h[:2], 16) / 255.0 - 0.5) * 0.3
 
 
-# -----------------------------
-# Main recommender
-# -----------------------------
+# -------------------------------------------------------------------
+# Helper: session progression bias
+# -------------------------------------------------------------------
+def session_rotation_bias(session_count, game_id):
+    """
+    Encourages progression and rotation across sessions
+    """
+    rotation = (session_count % len(GAMES)) / len(GAMES)
+    return (rotation - 0.5) * 0.25
+
+
+# -------------------------------------------------------------------
+# ✅ FINAL RECOMMENDER (INTELLIGENT + EXPLAINABLE)
+# -------------------------------------------------------------------
 def recommend_next_game(nsi, session_scores, subject_id, last_game=None):
-    variability = float(np.std(session_scores[-3:])) if len(session_scores) >= 3 else 0.3
-    trend = compute_trend(session_scores)
     session_count = len(session_scores)
+    explanations = []
+
+    # -------------------------------
+    # Core behavioral signals
+    # -------------------------------
+    variability = float(np.std(session_scores[-3:])) if session_count >= 3 else 0.25
+    trend = compute_trend(session_scores)
 
     target_ad = target_attention_demand(nsi)
 
-    # Trend adjustment
+    # Trend-based adjustment
     if trend > 0.03:
         target_ad += 0.3
     elif trend < -0.03:
@@ -63,6 +91,9 @@ def recommend_next_game(nsi, session_scores, subject_id, last_game=None):
 
     target_ad = float(np.clip(target_ad, 1.0, 3.0))
 
+    # -------------------------------
+    # Game scoring
+    # -------------------------------
     ranked = []
 
     for key, g in GAMES.items():
@@ -78,13 +109,13 @@ def recommend_next_game(nsi, session_scores, subject_id, last_game=None):
         )
 
         # Avoid staying at easiest level too long
-        if nsi > 55 and g["AD"] == 1:
+        if nsi > 55 and g["AD"] < 1.5:
             base_score -= 0.4
 
         score = (
             base_score
-            + subject_hash_bias(subject_id, key)      # A: subject diversity
-            + session_rotation_bias(session_count, key)  # B: progression
+            + subject_hash_bias(subject_id, key)
+            + session_rotation_bias(session_count, key)
         )
 
         ranked.append((score, key))
@@ -92,12 +123,36 @@ def recommend_next_game(nsi, session_scores, subject_id, last_game=None):
     ranked.sort(reverse=True)
     best_key = ranked[0][1]
 
+    # -------------------------------
+    # EXPLANATIONS (XAI Layer)
+    # -------------------------------
+    if nsi < 50:
+        explanations.append("Attention responses are currently unstable")
+    elif nsi < 65:
+        explanations.append("Attention stability is developing but inconsistent")
+    else:
+        explanations.append("Attention responses are becoming more stable")
+
+    if trend > 0.03:
+        explanations.append("Recent sessions show improving engagement")
+    elif trend < -0.03:
+        explanations.append("Recent sessions show reduced engagement")
+    else:
+        explanations.append("Recent attention levels are stable")
+
+    if variability > 0.12:
+        explanations.append("High variability detected across recent activities")
+
+    explanations.append(
+        f"Activity difficulty matched to current attention demand (AD ≈ {round(target_ad, 1)})"
+    )
+
+    # -------------------------------
+    # FINAL OUTPUT
+    # -------------------------------
     return {
         "game_id": best_key,
         "game_name": GAMES[best_key]["name"],
         "mode": f"adaptive (target AD ≈ {round(target_ad, 1)})",
-        "reason": (
-            "Selected using attention stability, recent progress trend, "
-            "and structured activity variation to maintain engagement"
-        ),
+        "explanations": explanations,
     }
