@@ -1,3 +1,5 @@
+# backend/app/main.py
+
 import json
 import math
 from pathlib import Path
@@ -12,8 +14,13 @@ from datetime import datetime
 from sklearn.metrics import roc_auc_score
 from app.models_serving import get_subject_model, get_generalized_model, predict_with_model
 from app.recommendation import recommend_next_game
-from app.db import check_db
-
+from app.db import (
+    check_db,
+    db_get_manifest,
+    db_get_session_scores,
+    db_get_last_game,
+    db_log_game,
+)
 
 ROOT = Path(__file__).resolve().parents[2]  # repo root
 STATIC_DIR = ROOT / "backend" / "static_data"
@@ -32,9 +39,13 @@ app.add_middleware(
 
 # --- Utility functions ---
 def load_manifest():
-    if not MANIFEST_PATH.exists():
-        raise FileNotFoundError("Manifest not found. Run preprocess_all.py first.")
-    return json.loads(MANIFEST_PATH.read_text())
+    try:
+        return db_get_manifest()
+    except Exception:
+        # fallback to JSON (safe)
+        if not MANIFEST_PATH.exists():
+            raise FileNotFoundError("Manifest not found")
+        return json.loads(MANIFEST_PATH.read_text())
 
 def load_npz_as_json(npz_path: Path):
     if not npz_path.exists():
@@ -80,24 +91,59 @@ def get_session_probs(subject_id: str, session_id: str, prefer_subject_model: bo
 
     return predict_with_model(model_bundle, X)
 
-def load_session_scores(subject_id: str):
+def load_session_scores(subject_id):
+    try:
+        scores = db_get_session_scores(subject_id)
+        if scores:
+            return scores
+    except Exception:
+        pass
+
+    # fallback JSON logic (existing)
     manifest = load_manifest()
-    subject = next(s for s in manifest["subjects"] if s["id"] == subject_id)
-
-    scores = []
-    for sess in subject["sessions"]:
-        probs = get_session_probs(
-            subject_id,
-            sess["session"],
-            prefer_subject_model=len(subject["sessions"]) >= 3,
-        )
-        scores.append(float(np.mean(probs)))
-
-    return scores
+    for s in manifest["subjects"]:
+        if s["id"] == subject_id:
+            return [sess.get("score", 0) for sess in s["sessions"]]
+    return []
 
 def load_nsi(subject_id: str):
-    resp = get_nsi(subject_id)
-    return resp["nsi"]
+    manifest = load_manifest()
+    subject = next(
+        (s for s in manifest["subjects"] if s["id"] == subject_id),
+        None,
+    )
+    if not subject:
+        return None
+
+    sessions = subject.get("sessions", [])
+    if len(sessions) < 3:
+        return None
+
+    session_scores = []
+    confidence_scores = []
+
+    for sess in sessions:
+        session_id = sess.get("session") or sess.get("session_id")
+        if not session_id:
+            continue
+
+        probs = get_session_probs(
+            subject_id,
+            session_id,
+            prefer_subject_model=True
+        )
+        session_scores.append(float(np.mean(probs)))
+        confidence_scores.append(compute_confidence_consistency(probs))
+
+
+    nsi_value, _ = compute_nsi(session_scores, confidence_scores)
+    return nsi_value
+
+def get_last_game(subject_id):
+    try:
+        return db_get_last_game(subject_id)
+    except Exception:
+        return None
 
 
 # NSI utilities
@@ -157,6 +203,7 @@ def compute_nsi(session_scores, confidence_scores):
         "improvement": round(I_norm, 3),
         "consistency": round(C_norm, 3),
     }
+
 
 # --- API Endpoints ---
 @app.get("/health/db")
@@ -344,29 +391,18 @@ def recommend_next(subject_id: str):
 
 @app.post("/game/log")
 def log_game(payload: dict = Body(...)):
-    """
-    Logs when a recommended activity is started.
-    """
     try:
         entry = {
-            "timestamp": datetime.utcnow().isoformat(),
             "subject_id": payload.get("subject_id"),
             "session_id": payload.get("session_id"),
             "game_id": payload.get("game_id"),
             "source": payload.get("source", "unknown"),
         }
 
-        # Load existing logs
-        if GAME_LOG_PATH.exists():
-            history = json.loads(GAME_LOG_PATH.read_text())
-        else:
-            history = []
-
-        history.append(entry)
-
-        GAME_LOG_PATH.write_text(json.dumps(history, indent=2))
+        db_log_game(entry)
 
         return {"success": True, "logged": entry}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
