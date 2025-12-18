@@ -12,7 +12,7 @@ from datetime import datetime
 from sklearn.metrics import roc_auc_score
 from app.models_serving import get_subject_model, get_generalized_model, predict_with_model
 from app.recommendation import recommend_next_game
-from app.game_history import log_game, get_last_game
+from app.db import check_db
 
 
 ROOT = Path(__file__).resolve().parents[2]  # repo root
@@ -159,6 +159,10 @@ def compute_nsi(session_scores, confidence_scores):
     }
 
 # --- API Endpoints ---
+@app.get("/health/db")
+def db_health():
+    return check_db()
+
 @app.get("/manifest")
 def get_manifest():
     try:
