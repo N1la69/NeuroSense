@@ -470,3 +470,72 @@ def log_game(payload: dict = Body(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+
+# COMPARISON
+@app.get("/predict/compare/{subject_id}/{session_id}")
+def compare_models(subject_id: str, session_id: str):
+    """
+    Research-only endpoint
+    Compares LOSO vs Subject-specific model on the SAME session
+    No DB writes, no side effects
+    """
+
+    # --------------------------------------------------
+    # 1. Load features
+    # --------------------------------------------------
+    train_path = STATIC_DIR / subject_id / session_id / "train_features.npz"
+    if not train_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="train_features.npz not found for this session"
+        )
+
+    with np.load(train_path, allow_pickle=True) as d:
+        X = d.get("X")
+
+    if X is None:
+        raise HTTPException(500, "Invalid feature file")
+
+    # --------------------------------------------------
+    # 2. Resolve subject number
+    # --------------------------------------------------
+    try:
+        subj_num = int(subject_id.replace("SBJ", ""))
+    except Exception:
+        raise HTTPException(400, "Invalid subject ID")
+
+    # --------------------------------------------------
+    # 3. LOSO model
+    # --------------------------------------------------
+    loso_model = get_generalized_model()
+    loso_probs = predict_with_model(loso_model, X)
+
+    loso_score = float(np.mean(loso_probs))
+    loso_conf = compute_confidence_consistency(loso_probs)
+
+    # --------------------------------------------------
+    # 4. Subject model
+    # --------------------------------------------------
+    subject_model = get_subject_model(subj_num)
+    subject_probs = predict_with_model(subject_model, X)
+
+    subject_score = float(np.mean(subject_probs))
+    subject_conf = compute_confidence_consistency(subject_probs)
+
+    # --------------------------------------------------
+    # 5. Response
+    # --------------------------------------------------
+    return {
+        "subject_id": subject_id,
+        "session_id": session_id,
+        "loso": {
+            "score": round(loso_score, 4),
+            "confidence": round(loso_conf, 4),
+        },
+        "subject": {
+            "score": round(subject_score, 4),
+            "confidence": round(subject_conf, 4),
+        },
+        "delta": round(subject_score - loso_score, 4),
+    }

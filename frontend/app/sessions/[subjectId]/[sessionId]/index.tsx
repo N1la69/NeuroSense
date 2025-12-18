@@ -8,6 +8,7 @@ import { aggregateP300 } from "@/app/utils/p300";
 import ObjectConfidenceBars from "@/app/components/ObjectConfidenceBars";
 import AppShell from "@/app/components/AppShell";
 import { useAuth } from "@/app/context/AuthContext";
+import ModelComparisonCard from "@/app/components/ModelComparisonCard";
 
 function interpretSessionScore(scorePct: number) {
   if (scorePct >= 70) {
@@ -49,6 +50,7 @@ export default function SessionScreen() {
   const [blockResults, setBlockResults] = useState<any[]>([]);
   const [recommendedGame, setRecommendedGame] = useState<any>(null);
   const [sessionScore, setSessionScore] = useState<number | null>(null);
+  const [comparison, setComparison] = useState<any>(null);
 
   useEffect(() => {
     if (!subjectId || !sessionId) {
@@ -66,6 +68,15 @@ export default function SessionScreen() {
           : modelMode === "subject"
           ? true
           : subject.sessions.length >= 3;
+
+      if (modelMode === "auto") {
+        try {
+          const cmp = await api.getModelComparison(subjectId!, sessionId!);
+          setComparison(cmp);
+        } catch {
+          setComparison(null);
+        }
+      }
 
       // --- Prediction ---
       const pred = await api.getPrediction(
@@ -349,6 +360,7 @@ export default function SessionScreen() {
           </View>
         )}
 
+        {/* LOG ACTIVITY */}
         {recommendedGame && (
           <Pressable
             style={{ marginTop: 16 }}
@@ -384,6 +396,9 @@ export default function SessionScreen() {
             </Text>
           </Pressable>
         )}
+
+        {/* RESEARCH MODE */}
+        {comparison && <ModelComparisonCard data={comparison} />}
       </ScrollView>
     </AppShell>
   );

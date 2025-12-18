@@ -15,7 +15,6 @@ export default function HomeScreen() {
   const [scores, setScores] = useState<number[]>([]);
   const [sessions, setSessions] = useState<string[]>([]);
   const [nsi, setNsi] = useState<number | null>(null);
-  const [nsiInfo, setNsiInfo] = useState<string | null>(null);
   const [recommendation, setRecommendation] = useState<any | null>(null);
 
   function toPercent(score: number) {

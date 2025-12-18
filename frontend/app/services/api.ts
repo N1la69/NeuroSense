@@ -29,4 +29,19 @@ export const api = {
   getNSI: (subjectId: string) => apiGet<any>(`/nsi/${subjectId}`),
   getRecommendation: (subjectId: string) =>
     apiGet<any>(`/recommend/next/${subjectId}`),
+  getModelComparison(subjectId: string, sessionId: string) {
+    return getModelComparison(subjectId, sessionId);
+  },
 };
+
+export async function getModelComparison(subjectId: string, sessionId: string) {
+  const res = await fetch(
+    `${BASE_URL}/predict/compare/${subjectId}/${sessionId}`
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
