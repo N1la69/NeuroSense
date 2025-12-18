@@ -111,21 +111,15 @@ def load_session_scores(subject_id):
 
 def load_nsi(subject_id: str):
     """
-    STEP 7A
+    STEP 7B
     - Uses cached NSI if available
-    - Computes & stores NSI otherwise
+    - Computes entropy-based confidence
     """
 
-    # ---------------------------
-    # 1. Try cache
-    # ---------------------------
     cached = get_cached_nsi(subject_id)
     if cached:
         return cached["nsi"]
 
-    # ---------------------------
-    # 2. Load session scores
-    # ---------------------------
     sessions = get_sessions(subject_id)
     scores = [
         s["score"] for s in sessions
@@ -135,26 +129,28 @@ def load_nsi(subject_id: str):
     if len(scores) < 3:
         return None
 
-    # ---------------------------
-    # 3. Confidence proxy (temporary)
-    # ---------------------------
-    std = float(np.std(scores))
-    confidence_scores = [
-        1.0 - clamp(std / 0.25)
-        for _ in scores
-    ]
+    confidence_scores = []
 
-    # ---------------------------
-    # 4. Compute NSI
-    # ---------------------------
+    for s in sessions:
+        session_id = s["session_id"]
+
+        use_subject = len(sessions) >= 3
+
+        probs = get_session_probs(
+            subject_id,
+            session_id,
+            prefer_subject_model=use_subject
+        )
+
+        confidence_scores.append(
+            compute_confidence_consistency(probs)
+        )
+
     nsi_value, components = compute_nsi(
         scores,
         confidence_scores
     )
 
-    # ---------------------------
-    # 5. Cache result
-    # ---------------------------
     set_cached_nsi(subject_id, nsi_value, components)
 
     return nsi_value
@@ -319,10 +315,25 @@ def predict_session(
     # --------------------------------------------------
     train_path = STATIC_DIR / subject_id / session_id / "train_features.npz"
     if not train_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="train_features.npz not found for this session"
+        sessions = get_sessions(subject_id)
+        sess = next(
+            (s for s in sessions if s["session_id"] == session_id),
+            None
         )
+        if not sess or sess.get("score") is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No features or stored score found for this session"
+            )
+
+        return JSONResponse({
+            "n_trials": 0,
+            "probs": [],
+            "score": sess["score"],
+            "model_used": sess.get("model_used", "unknown"),
+            "note": "Loaded from database (no feature file)"
+        })
+
 
     with np.load(train_path, allow_pickle=True) as d:
         X = d.get("X")

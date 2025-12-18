@@ -61,25 +61,10 @@ export default function SubjectScreen() {
           ? true
           : subject.sessions.length >= 3;
 
-      const summaries: SessionSummary[] = [];
-
-      for (const sess of subject.sessions) {
-        try {
-          const sessionId = sess.session;
-          const pred = await api.getPrediction(
-            subjectId!,
-            sessionId,
-            preferSubjectModel
-          );
-
-          const score =
-            pred.auc ??
-            pred.probs.reduce((a: number, b: number) => a + b, 0) /
-              pred.probs.length;
-
-          summaries.push({ sessionId, score });
-        } catch {}
-      }
+      const summaries: SessionSummary[] = subject.sessions.map((sess: any) => ({
+        sessionId: sess.session_id,
+        score: sess.score,
+      }));
 
       setSessions(summaries);
       setLoading(false);

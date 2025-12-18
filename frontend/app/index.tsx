@@ -63,7 +63,6 @@ export default function HomeScreen() {
       const nsiRes = await api.getNSI(subjectId);
       if (nsiRes.nsi !== null && nsiRes.nsi !== undefined) {
         setNsi(nsiRes.nsi);
-        setNsiInfo(nsiRes.interpretation);
       } else {
         setNsi(null);
       }
@@ -82,17 +81,10 @@ export default function HomeScreen() {
       const ids: string[] = [];
 
       for (const sess of subject.sessions) {
-        const pred = await api.getPrediction(
-          subjectId,
-          sess.session,
-          preferSubjectModel
-        );
-        s.push(
-          pred.auc ??
-            pred.probs.reduce((a: number, b: number) => a + b, 0) /
-              pred.probs.length
-        );
-        ids.push(sess.session);
+        if (sess.score == null) continue;
+
+        s.push(sess.score);
+        ids.push(sess.session_id);
       }
 
       setScores(s);

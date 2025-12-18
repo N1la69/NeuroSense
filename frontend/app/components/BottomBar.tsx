@@ -1,9 +1,11 @@
 import { View, Pressable, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function BottomBar() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
     <View
@@ -11,7 +13,11 @@ export default function BottomBar() {
         flexDirection: "row",
         justifyContent: "space-around",
         alignItems: "center",
-        paddingVertical: 10,
+
+        // ✅ Safe area padding
+        paddingBottom: Math.max(insets.bottom, 12),
+        paddingTop: 10,
+
         borderTopWidth: 1,
         borderColor: "#eef0f5",
         backgroundColor: "#ffffff",

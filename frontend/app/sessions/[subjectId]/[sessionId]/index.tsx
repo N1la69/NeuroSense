@@ -7,7 +7,6 @@ import { api, BASE_URL } from "@/app/services/api";
 import { aggregateP300 } from "@/app/utils/p300";
 import ObjectConfidenceBars from "@/app/components/ObjectConfidenceBars";
 import AppShell from "@/app/components/AppShell";
-
 import { useAuth } from "@/app/context/AuthContext";
 
 function interpretSessionScore(scorePct: number) {
@@ -49,8 +48,13 @@ export default function SessionScreen() {
   const [probs, setProbs] = useState<number[]>([]);
   const [blockResults, setBlockResults] = useState<any[]>([]);
   const [recommendedGame, setRecommendedGame] = useState<any>(null);
+  const [sessionScore, setSessionScore] = useState<number | null>(null);
 
   useEffect(() => {
+    if (!subjectId || !sessionId) {
+      return;
+    }
+
     async function load() {
       const manifest = await api.getManifest();
       const subject = manifest.subjects.find((s: any) => s.id === subjectId);
@@ -70,6 +74,7 @@ export default function SessionScreen() {
         preferSubjectModel
       );
       setProbs(pred.probs);
+      setSessionScore(pred.score);
 
       // --- Recommendation ---
       const recRes = await fetch(`${BASE_URL}/recommend/next/${subjectId}`);
@@ -101,9 +106,9 @@ export default function SessionScreen() {
   }, [recommendedGame]);
 
   const scorePct = useMemo(() => {
-    if (!probs.length) return null;
-    return Math.round((probs.reduce((a, b) => a + b, 0) / probs.length) * 100);
-  }, [probs]);
+    if (sessionScore === null) return null;
+    return Math.round(sessionScore * 100);
+  }, [sessionScore]);
 
   if (scorePct === null) {
     return (
