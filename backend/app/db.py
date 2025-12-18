@@ -40,20 +40,38 @@ def get_sessions(subject_id: str):
         sessions_col.find(
             {"subject_id": subject_id},
             {"_id": 0}
-        ).sort("created_at", 1)
+        ).sort("session_index", 1)
     )
 
-def insert_session_if_missing(subject_id, session_id, score=None):
-    if not sessions_col.find_one(
-        {"subject_id": subject_id, "session_id": session_id}
-    ):
-        sessions_col.insert_one({
-            "subject_id": subject_id,
-            "session_id": session_id,
-            "score": score,
-            "model_used": None,
-            "created_at": datetime.utcnow()
-        })
+def insert_or_update_session(
+    subject_id: str,
+    session_id: str,
+    score: float,
+    model_used: str,
+):
+    try:
+        session_index = int(session_id.replace("S", ""))
+    except Exception:
+        session_index = None
+
+    sessions_col.update_one(
+        {"subject_id": subject_id, "session_id": session_id},
+        {
+            "$set": {
+                "subject_id": subject_id,
+                "session_id": session_id,
+                "session_index": session_index,
+                "score": score,
+                "model_used": model_used,
+                "created_at": datetime.utcnow(),
+            }
+        },
+        upsert=True
+    )
+
+    # 🔥 Invalidate NSI cache
+    nsi_col.delete_one({"subject_id": subject_id})
+
 
 
 def db_get_manifest():
@@ -93,3 +111,29 @@ def db_log_game(entry: dict):
         **entry,
         "timestamp": datetime.utcnow()
     })
+
+
+# NSI CACHE
+def get_cached_nsi(subject_id: str):
+    doc = nsi_col.find_one(
+        {"subject_id": subject_id},
+        {"_id": 0}
+    )
+    return doc
+
+def set_cached_nsi(subject_id: str, nsi: int, components: dict):
+    nsi_col.update_one(
+        {"subject_id": subject_id},
+        {
+            "$set": {
+                "subject_id": subject_id,
+                "nsi": nsi,
+                "components": components,
+                "updated_at": datetime.utcnow(),
+            }
+        },
+        upsert=True
+    )
+
+def invalidate_nsi(subject_id: str):
+    nsi_col.delete_one({"subject_id": subject_id})

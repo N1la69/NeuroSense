@@ -20,12 +20,12 @@ from app.db import (
     db_get_last_game,
     db_log_game,
     get_sessions,
+    insert_or_update_session,
+    get_cached_nsi, set_cached_nsi
 )
 
 ROOT = Path(__file__).resolve().parents[2]  # repo root
 STATIC_DIR = ROOT / "backend" / "static_data"
-MANIFEST_PATH = STATIC_DIR / "manifest.json"
-GAME_LOG_PATH = STATIC_DIR / "game_history.json"
 
 app = FastAPI(title="NeuroSense Backend (dev)")
 
@@ -41,23 +41,21 @@ app.add_middleware(
 def load_manifest():
     subjects = db_list_subjects()
 
-    if subjects:
-        # Build manifest-like structure from DB
-        return {
-            "subjects": [
-                {
-                    "id": s["subject_id"],
-                    "sessions": get_sessions(s["subject_id"])
-                }
-                for s in subjects
-            ]
-        }
+    if not subjects:
+        raise HTTPException(
+            status_code=500,
+            detail="No subjects found in database"
+        )
 
-    # fallback
-    if not MANIFEST_PATH.exists():
-        raise FileNotFoundError("Manifest not found")
-
-    return json.loads(MANIFEST_PATH.read_text())
+    return {
+        "subjects": [
+            {
+                "id": s["subject_id"],
+                "sessions": get_sessions(s["subject_id"])
+            }
+            for s in subjects
+        ]
+    }
 
 def load_npz_as_json(npz_path: Path):
     if not npz_path.exists():
@@ -105,57 +103,60 @@ def get_session_probs(subject_id: str, session_id: str, prefer_subject_model: bo
 
 def load_session_scores(subject_id):
     sessions = get_sessions(subject_id)
-
-    scores = []
-
-    for s in sessions:
-        session_id = s.get("session_id") or s.get("session")
-        if not session_id:
-            continue
-
-        try:
-            probs = get_session_probs(
-                subject_id,
-                session_id,
-                prefer_subject_model=True
-            )
-            scores.append(float(np.mean(probs)))
-        except Exception:
-            continue
-
-    return scores
+    return [
+        s["score"]
+        for s in sessions
+        if s.get("score") is not None
+    ]
 
 def load_nsi(subject_id: str):
-    manifest = load_manifest()
-    subject = next(
-        (s for s in manifest["subjects"] if s["id"] == subject_id),
-        None,
+    """
+    STEP 7A
+    - Uses cached NSI if available
+    - Computes & stores NSI otherwise
+    """
+
+    # ---------------------------
+    # 1. Try cache
+    # ---------------------------
+    cached = get_cached_nsi(subject_id)
+    if cached:
+        return cached["nsi"]
+
+    # ---------------------------
+    # 2. Load session scores
+    # ---------------------------
+    sessions = get_sessions(subject_id)
+    scores = [
+        s["score"] for s in sessions
+        if s.get("score") is not None
+    ]
+
+    if len(scores) < 3:
+        return None
+
+    # ---------------------------
+    # 3. Confidence proxy (temporary)
+    # ---------------------------
+    std = float(np.std(scores))
+    confidence_scores = [
+        1.0 - clamp(std / 0.25)
+        for _ in scores
+    ]
+
+    # ---------------------------
+    # 4. Compute NSI
+    # ---------------------------
+    nsi_value, components = compute_nsi(
+        scores,
+        confidence_scores
     )
-    if not subject:
-        return None
 
-    sessions = subject.get("sessions", [])
-    if len(sessions) < 3:
-        return None
+    # ---------------------------
+    # 5. Cache result
+    # ---------------------------
+    set_cached_nsi(subject_id, nsi_value, components)
 
-    session_scores = []
-    confidence_scores = []
-
-    for sess in sessions:
-        session_id = sess.get("session") or sess.get("session_id")
-        if not session_id:
-            continue
-
-        probs = get_session_probs(
-            subject_id,
-            session_id,
-            prefer_subject_model=True
-        )
-        session_scores.append(float(np.mean(probs)))
-        confidence_scores.append(compute_confidence_consistency(probs))
-
-
-    nsi_value, _ = compute_nsi(session_scores, confidence_scores)
     return nsi_value
 
 def get_last_game(subject_id):
@@ -239,21 +240,31 @@ def get_manifest():
 @app.get("/subjects")
 def list_subjects():
     subjects = db_list_subjects()
-    if subjects:
-        return {"subjects": [s["subject_id"] for s in subjects]}
 
-    manifest = load_manifest()
-    return {"subjects": [s["id"] for s in manifest.get("subjects", [])]}
+    if not subjects:
+        raise HTTPException(
+            status_code=500,
+            detail="No subjects found in database"
+        )
+
+    return {
+        "subjects": [s["subject_id"] for s in subjects]
+    }
 
 @app.get("/subjects/{subject_id}/sessions")
 def list_sessions(subject_id: str):
-    manifest = load_manifest()
-    for s in manifest.get("subjects", []):
-        if s["id"] == subject_id:
-            sessions = [sess["session"] if "session" in sess else sess.get("session", sess.get("session")) for sess in s.get("sessions", [])]
-            # But manifest structure has sessions with session entries as the dict returned earlier.
-            return {"subject": subject_id, "sessions": s.get("sessions", [])}
-    raise HTTPException(status_code=404, detail=f"Subject {subject_id} not found")
+    sessions = get_sessions(subject_id)
+
+    if not sessions:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No sessions found for {subject_id}"
+        )
+
+    return {
+        "subject": subject_id,
+        "sessions": sessions
+    }
 
 @app.get("/data/{subject_id}/{session_id}/train")
 def get_train_features(subject_id: str, session_id: str):
@@ -291,58 +302,97 @@ def list_models():
     return out
 
 @app.get("/predict/session/{subject_id}/{session_id}")
-def predict_session(subject_id: str, session_id: str, prefer_subject_model: Optional[bool] = Query(True)):
+def predict_session(
+    subject_id: str,
+    session_id: str,
+    prefer_subject_model: Optional[bool] = Query(True)
+):
     """
     Predict on precomputed features for a session.
     - subject_id: like 'SBJ01'
     - session_id: like 'S01'
     - prefer_subject_model: if true, try loading subject-specific model; otherwise use generalized
     """
-    # find feature file
+
+    # --------------------------------------------------
+    # 1. Load features
+    # --------------------------------------------------
     train_path = STATIC_DIR / subject_id / session_id / "train_features.npz"
     if not train_path.exists():
-        raise HTTPException(status_code=404, detail="train_features.npz not found for this session")
+        raise HTTPException(
+            status_code=404,
+            detail="train_features.npz not found for this session"
+        )
 
-    # load npz
-    import numpy as np
     with np.load(train_path, allow_pickle=True) as d:
         X = d.get("X")
         targets = d.get("targets") if "targets" in d else None
 
-    # load model
-    # parse subject number
+    # --------------------------------------------------
+    # 2. Resolve model
+    # --------------------------------------------------
     try:
         subj_num = int(subject_id.replace("SBJ", ""))
     except Exception:
         subj_num = None
 
+    sessions = get_sessions(subject_id)
+    session_count = len(sessions)
+
     model_bundle = None
-    if prefer_subject_model and subj_num is not None:
+    model_used = "loso"  # ✅ DEFAULT
+
+    # Use subject model only after enough data
+    if session_count >= 3 and subj_num is not None:
         try:
             model_bundle = get_subject_model(subj_num)
+            model_used = "subject"
         except FileNotFoundError:
             model_bundle = None
 
     if model_bundle is None:
-        # fallback to generalized
         try:
             model_bundle = get_generalized_model()
+            model_used = "loso"
         except FileNotFoundError:
-            model_bundle = None
+            raise HTTPException(
+                status_code=404,
+                detail="No model found (subject or generalized)"
+            )
 
-    if model_bundle is None:
-        raise HTTPException(status_code=404, detail="No model found (checked subject-specific and generalized)")
-
-    # predict
+    # --------------------------------------------------
+    # 3. Predict
+    # --------------------------------------------------
     probs = predict_with_model(model_bundle, X)
     probs_list = probs.tolist()
-    resp = {"n_trials": int(len(probs_list)), "probs": probs_list}
+    mean_score = float(np.mean(probs))   # ✅ CANONICAL SESSION SCORE
 
-    # compute AUC if targets available
+    # --------------------------------------------------
+    # 4. Persist session score (⭐ STEP 6 CORE)
+    # --------------------------------------------------
+    insert_or_update_session(
+        subject_id=subject_id,
+        session_id=session_id,
+        score=mean_score,
+        model_used=model_used,
+    )
+
+    # --------------------------------------------------
+    # 5. Build response
+    # --------------------------------------------------
+    resp = {
+        "n_trials": int(len(probs_list)),
+        "probs": probs_list,
+        "score": mean_score,        # ✅ EXPLICIT SCORE
+        "model_used": model_used,   # ✅ EXPLICIT MODEL
+    }
+
+    # Optional AUC (debug / dev)
     if targets is not None and len(targets) == len(probs_list):
         try:
-            auc = float(roc_auc_score(targets.astype(int), probs))
-            resp["auc"] = auc
+            resp["auc"] = float(
+                roc_auc_score(targets.astype(int), probs)
+            )
         except Exception as e:
             resp["auc_error"] = str(e)
 
@@ -350,64 +400,45 @@ def predict_session(subject_id: str, session_id: str, prefer_subject_model: Opti
 
 @app.get("/nsi/{subject_id}")
 def get_nsi(subject_id: str):
-    manifest = load_manifest()
-    subject = next(
-        (s for s in manifest["subjects"] if s["id"] == subject_id),
-        None,
-    )
-    if not subject:
-        raise HTTPException(status_code=404, detail="Subject not found")
+    nsi = load_nsi(subject_id)
 
-    sessions = subject.get("sessions", [])
-    if len(sessions) < 3:
+    sessions = get_sessions(subject_id)
+
+    if nsi is None:
         return {
             "subject": subject_id,
             "n_sessions": len(sessions),
             "nsi": None,
-            "message": "NSI available after at least 3 sessions",
+            "message": "NSI available after at least 3 scored sessions",
         }
 
-    session_scores = []
-    confidence_scores = []
-
-    for sess in sessions:
-        session_id = sess["session"]
-
-        # Use SAME model selection logic as frontend auto mode
-        prefer_subject_model = len(sessions) >= 3
-
-        probs = get_session_probs(
-            subject_id,
-            session_id,
-            prefer_subject_model
-        )
-
-        session_scores.append(float(np.mean(probs)))
-        confidence_scores.append(compute_confidence_consistency(probs))
-
-    nsi_value, components = compute_nsi(
-        session_scores, confidence_scores
-    )
+    cached = get_cached_nsi(subject_id)
 
     return {
         "subject": subject_id,
         "n_sessions": len(sessions),
-        "model_used": "subject" if prefer_subject_model else "loso",
-        "nsi": nsi_value,
-        "components": components,
-        "interpretation": (
-            "Higher NSI indicates more stable and adaptive neural responses"
-        ),
+        "nsi": nsi,
+        "components": cached.get("components"),
+        "interpretation": "Higher NSI indicates more stable and adaptive neural responses",
     }
 
 @app.get("/recommend/next/{subject_id}")
 def recommend_next(subject_id: str):
-    # load session scores (reuse same logic as NSI)
-    scores = load_session_scores(subject_id)  # your existing helper
+    scores = load_session_scores(subject_id)
+
     if len(scores) < 3:
-        raise HTTPException(status_code=400, detail="Not enough sessions")
+        raise HTTPException(
+            status_code=400,
+            detail="Not enough sessions"
+        )
 
     nsi = load_nsi(subject_id)
+
+    if nsi is None:
+        raise HTTPException(
+            status_code=400,
+            detail="NSI not available yet"
+        )
 
     return recommend_next_game(nsi, scores, subject_id)
 
