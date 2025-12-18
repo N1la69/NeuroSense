@@ -1,3 +1,5 @@
+# backend/app/db.py
+
 from pymongo import MongoClient
 from datetime import datetime
 import os
@@ -18,12 +20,40 @@ game_history_col = db["game_history"]
 nsi_col = db["nsi_cache"]
 parents_col = db["parents"]
 
+# ---- DB Functions ----
 def check_db():
     # Simple sanity check
     return {
         "db": DB_NAME,
         "collections": db.list_collection_names()
     }
+
+
+def get_subject(subject_id: str):
+    return subjects_col.find_one({"subject_id": subject_id})
+
+def db_list_subjects():
+    return list(subjects_col.find({}, {"_id": 0}))
+
+def get_sessions(subject_id: str):
+    return list(
+        sessions_col.find(
+            {"subject_id": subject_id},
+            {"_id": 0}
+        ).sort("created_at", 1)
+    )
+
+def insert_session_if_missing(subject_id, session_id, score=None):
+    if not sessions_col.find_one(
+        {"subject_id": subject_id, "session_id": session_id}
+    ):
+        sessions_col.insert_one({
+            "subject_id": subject_id,
+            "session_id": session_id,
+            "score": score,
+            "model_used": None,
+            "created_at": datetime.utcnow()
+        })
 
 
 def db_get_manifest():
@@ -42,7 +72,6 @@ def db_get_manifest():
 
     return {"subjects": out}
 
-
 def db_get_session_scores(subject_id):
     sess = list(
         sessions_col.find(
@@ -51,7 +80,6 @@ def db_get_session_scores(subject_id):
         ).sort("session_index", 1)
     )
     return [s["score"] for s in sess]
-
 
 def db_get_last_game(subject_id):
     last = game_history_col.find_one(

@@ -16,10 +16,10 @@ from app.models_serving import get_subject_model, get_generalized_model, predict
 from app.recommendation import recommend_next_game
 from app.db import (
     check_db,
-    db_get_manifest,
-    db_get_session_scores,
+    db_list_subjects,
     db_get_last_game,
     db_log_game,
+    get_sessions,
 )
 
 ROOT = Path(__file__).resolve().parents[2]  # repo root
@@ -39,13 +39,25 @@ app.add_middleware(
 
 # --- Utility functions ---
 def load_manifest():
-    try:
-        return db_get_manifest()
-    except Exception:
-        # fallback to JSON (safe)
-        if not MANIFEST_PATH.exists():
-            raise FileNotFoundError("Manifest not found")
-        return json.loads(MANIFEST_PATH.read_text())
+    subjects = db_list_subjects()
+
+    if subjects:
+        # Build manifest-like structure from DB
+        return {
+            "subjects": [
+                {
+                    "id": s["subject_id"],
+                    "sessions": get_sessions(s["subject_id"])
+                }
+                for s in subjects
+            ]
+        }
+
+    # fallback
+    if not MANIFEST_PATH.exists():
+        raise FileNotFoundError("Manifest not found")
+
+    return json.loads(MANIFEST_PATH.read_text())
 
 def load_npz_as_json(npz_path: Path):
     if not npz_path.exists():
@@ -92,19 +104,26 @@ def get_session_probs(subject_id: str, session_id: str, prefer_subject_model: bo
     return predict_with_model(model_bundle, X)
 
 def load_session_scores(subject_id):
-    try:
-        scores = db_get_session_scores(subject_id)
-        if scores:
-            return scores
-    except Exception:
-        pass
+    sessions = get_sessions(subject_id)
 
-    # fallback JSON logic (existing)
-    manifest = load_manifest()
-    for s in manifest["subjects"]:
-        if s["id"] == subject_id:
-            return [sess.get("score", 0) for sess in s["sessions"]]
-    return []
+    scores = []
+
+    for s in sessions:
+        session_id = s.get("session_id") or s.get("session")
+        if not session_id:
+            continue
+
+        try:
+            probs = get_session_probs(
+                subject_id,
+                session_id,
+                prefer_subject_model=True
+            )
+            scores.append(float(np.mean(probs)))
+        except Exception:
+            continue
+
+    return scores
 
 def load_nsi(subject_id: str):
     manifest = load_manifest()
@@ -219,9 +238,12 @@ def get_manifest():
 
 @app.get("/subjects")
 def list_subjects():
+    subjects = db_list_subjects()
+    if subjects:
+        return {"subjects": [s["subject_id"] for s in subjects]}
+
     manifest = load_manifest()
-    subjects = [s["id"] for s in manifest.get("subjects", [])]
-    return {"subjects": subjects}
+    return {"subjects": [s["id"] for s in manifest.get("subjects", [])]}
 
 @app.get("/subjects/{subject_id}/sessions")
 def list_sessions(subject_id: str):
